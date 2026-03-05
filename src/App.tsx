@@ -10,6 +10,7 @@ import FunnelsPage from "@/pages/FunnelsPage";
 import LeadsPage from "@/pages/LeadsPage";
 import ConversationsPage from "@/pages/ConversationsPage";
 import SDRsPage from "@/pages/SDRsPage";
+import ClosersPage from "@/pages/ClosersPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
