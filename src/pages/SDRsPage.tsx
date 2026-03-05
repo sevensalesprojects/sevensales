@@ -55,20 +55,20 @@ export default function SDRsPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">SDRs</h1>
-          <p className="text-sm text-muted-foreground">Gestão da equipe comercial · {mockSDRs.filter((s) => s.status === "active").length} ativos</p>
+          <h1 className="text-base md:text-lg font-semibold text-foreground">SDRs</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gestão da equipe · {mockSDRs.filter((s) => s.status === "active").length} ativos</p>
         </div>
         <button onClick={() => toast({ title: "Em breve", description: "Cadastro de SDRs será disponibilizado na gestão de usuários." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" />
-          Novo SDR
+          <span className="hidden md:inline">Novo SDR</span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* KPIs */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
             { label: "Total SDRs", value: mockSDRs.length.toString(), icon: Users, color: "text-primary" },
             { label: "Contatos Hoje", value: "45", icon: Phone, color: "text-info" },

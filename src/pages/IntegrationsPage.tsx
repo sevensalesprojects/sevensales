@@ -91,7 +91,7 @@ export default function IntegrationsPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 {int.status === "connected" ? (
                   <>
                     <button onClick={() => toast({ title: "Teste OK", description: "Conexão verificada com sucesso." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">

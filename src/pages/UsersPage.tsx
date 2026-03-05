@@ -86,22 +86,51 @@ export default function UsersPage() {
           })}
         </div>
 
-        {/* Users Table */}
+        {/* Users - Mobile cards / Desktop table */}
         <div className="bg-card border border-border rounded-lg">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-foreground">Todos os Usuários</h3>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar por nome ou email..."
+                placeholder="Buscar..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 w-56 rounded-md border border-input bg-muted/50 pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className="h-8 w-full md:w-56 rounded-md border border-input bg-muted/50 pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
           </div>
-          <table className="w-full text-sm">
+          {/* Mobile card list */}
+          <div className="md:hidden divide-y divide-border">
+            {filtered.map((user) => (
+              <div key={user.id} className="px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-xs font-medium text-primary">{user.initials}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{user.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[user.role]}`}>{roleLabels[user.role]}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${user.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                    {user.status === "active" ? "Ativo" : "Inativo"}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => toast({ title: "Em breve" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                    <button onClick={() => toast({ title: "Em breve" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table */}
+          <table className="hidden md:table w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Usuário</th>

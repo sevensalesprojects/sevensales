@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "@/hooks/use-toast";
 import { toast } from "@/hooks/use-toast";
 import {
   Building2, Globe, Clock, Palette, Users, Kanban, Tags,
