@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import {
   Plus, Search, Shield, ShieldCheck, UserCog, MoreHorizontal,
   Pencil, Trash2, Eye, EyeOff, Lock, Users as UsersIcon,
