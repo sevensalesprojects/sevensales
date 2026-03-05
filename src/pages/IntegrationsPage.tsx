@@ -55,7 +55,7 @@ export default function IntegrationsPage() {
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4">
         {integrations.map((int) => (
           <div key={int.id} className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="p-5 flex items-start gap-4">
+            <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-start gap-3 md:gap-4">
               {/* Icon */}
               <div className={`w-12 h-12 rounded-lg ${int.iconBg} flex items-center justify-center shrink-0`}>
                 <int.icon className={`w-6 h-6 ${int.iconColor}`} />
