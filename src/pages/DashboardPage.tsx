@@ -113,14 +113,15 @@ export default function DashboardPage() {
 
   const filterLeadsByRange = (rangeFrom: string, rangeTo: string) =>
     mockLeads.filter((l) => {
+      if (projectFilter !== "all" && l.expertId !== projectFilter) return false;
       if (sdrFilter !== "all" && l.sdr !== sdrFilter) return false;
       if (closerFilter !== "all" && l.closer !== closerFilter) return false;
       if (l.createdAt < rangeFrom || l.createdAt > rangeTo) return false;
       return true;
     });
 
-  const filteredLeads = useMemo(() => filterLeadsByRange(from, to), [from, to, sdrFilter, closerFilter]);
-  const prevLeads = useMemo(() => filterLeadsByRange(prevFrom, prevTo), [prevFrom, prevTo, sdrFilter, closerFilter]);
+  const filteredLeads = useMemo(() => filterLeadsByRange(from, to), [from, to, sdrFilter, closerFilter, projectFilter]);
+  const prevLeads = useMemo(() => filterLeadsByRange(prevFrom, prevTo), [prevFrom, prevTo, sdrFilter, closerFilter, projectFilter]);
 
   // KPIs current
   const leadsToday = filteredLeads.filter((l) => l.createdAt === TODAY);

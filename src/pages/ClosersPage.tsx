@@ -24,8 +24,9 @@ const currencyFormat = (value: number, currency: Currency) => {
 };
 
 export default function ClosersPage() {
-  const { currentExpert } = useExpert();
+  const { currentExpert, experts } = useExpert();
   const [closerFilter, setCloserFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [currency, setCurrency] = useState<Currency>("BRL");
 
   const closers = useMemo(() => {
@@ -35,10 +36,11 @@ export default function ClosersPage() {
 
   const filteredLeads = useMemo(() => {
     return mockLeads.filter((l) => {
+      if (projectFilter !== "all" && l.expertId !== projectFilter) return false;
       if (closerFilter !== "all" && l.closer !== closerFilter) return false;
       return true;
     });
-  }, [closerFilter]);
+  }, [closerFilter, projectFilter]);
 
   const leadsWithAppointment = filteredLeads.filter((l) => l.hasAppointment);
   const callsRealized = leadsWithAppointment.filter((l) => l.appointmentAttended).length;
@@ -102,6 +104,17 @@ export default function ClosersPage() {
           <p className="text-sm text-muted-foreground">{currentExpert.name} · Gestão Comercial</p>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-[150px] h-8 text-xs bg-card border-border">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Projetos</SelectItem>
+              {experts.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={closerFilter} onValueChange={setCloserFilter}>
             <SelectTrigger className="w-[140px] h-8 text-xs bg-card border-border">
               <SelectValue placeholder="Closer" />
