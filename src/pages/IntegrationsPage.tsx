@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
+import { toast } from "@/hooks/use-toast";
 import {
   MessageCircle, Instagram, ShoppingBag, Wifi, WifiOff,
   Settings, RefreshCw, CheckCircle2, XCircle, QrCode,
