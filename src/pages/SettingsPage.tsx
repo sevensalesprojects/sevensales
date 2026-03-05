@@ -156,8 +156,8 @@ function FunnelsSettings() {
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
               <span className="text-sm text-foreground flex-1">{stage.name}</span>
               <span className="text-xs text-muted-foreground">Etapa {i + 1}</span>
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Edição de etapa será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Exclusão de etapa será disponibilizada em breve.", variant: "destructive" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
             </div>
           ))}
         </div>
