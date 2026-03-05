@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import {
   Plus, Search, Shield, ShieldCheck, UserCog, MoreHorizontal,
   Pencil, Trash2, Eye, EyeOff, Lock, Users as UsersIcon,
@@ -56,7 +57,7 @@ export default function UsersPage() {
           <h1 className="text-lg font-semibold text-foreground">Usuários</h1>
           <p className="text-sm text-muted-foreground">Gestão de acesso e permissões · {mockUsers.length} usuários</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Convite de novos usuários será disponibilizado em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" />
           Novo Usuário
         </button>
@@ -143,13 +144,13 @@ export default function UsersPage() {
                   <td className="px-4 py-3 text-muted-foreground text-xs">{user.createdAt}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Editar">
+                      <button onClick={() => toast({ title: "Em breve", description: "Edição de usuário será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Editar">
                         <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>
-                      <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Permissões">
+                      <button onClick={() => toast({ title: "Em breve", description: "Gestão de permissões será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Permissões">
                         <Lock className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>
-                      <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
+                      <button onClick={() => toast({ title: "Em breve", description: "Exclusão de usuário será disponibilizada em breve.", variant: "destructive" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </button>
                     </div>

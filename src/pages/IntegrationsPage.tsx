@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
+import { toast } from "@/hooks/use-toast";
 import {
   MessageCircle, Instagram, ShoppingBag, Wifi, WifiOff,
   Settings, RefreshCw, CheckCircle2, XCircle, QrCode,
@@ -93,18 +94,18 @@ export default function IntegrationsPage() {
               <div className="flex items-center gap-2 shrink-0">
                 {int.status === "connected" ? (
                   <>
-                    <button className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+                    <button onClick={() => toast({ title: "Teste OK", description: "Conexão verificada com sucesso." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
                       <RefreshCw className="w-3.5 h-3.5" /> Testar
                     </button>
-                    <button className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+                    <button onClick={() => toast({ title: "Em breve", description: "Edição de integração será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
                       <Settings className="w-3.5 h-3.5" /> Editar
                     </button>
-                    <button className="h-8 px-3 rounded-md border border-destructive/30 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1.5 transition-colors">
+                    <button onClick={() => toast({ title: "Em breve", description: "Desconexão de integração será disponibilizada em breve.", variant: "destructive" })} className="h-8 px-3 rounded-md border border-destructive/30 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1.5 transition-colors">
                       <WifiOff className="w-3.5 h-3.5" /> Desconectar
                     </button>
                   </>
                 ) : (
-                  <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+                  <button onClick={() => toast({ title: "Em breve", description: `Conexão com ${int.name} será disponibilizada em breve.` })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
                     {int.id === "whatsapp" ? <QrCode className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
                     Conectar
                   </button>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
+import { toast } from "@/hooks/use-toast";
 import {
   Building2, Globe, Clock, Palette, Users, Kanban, Tags,
   Zap, Plus, Pencil, Trash2, GripVertical, Save, ChevronRight,
@@ -73,7 +74,7 @@ function SystemSettings() {
                 <p className="text-xs text-muted-foreground">{item.value}</p>
               </div>
             </div>
-            <button className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
+            <button onClick={() => toast({ title: "Em breve", description: `Edição de "${item.label}" será disponibilizada em breve.` })} className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
               Editar
             </button>
           </div>
@@ -93,7 +94,7 @@ function ExpertsSettings() {
           <h2 className="text-lg font-semibold text-foreground mb-1">Projetos / Experts</h2>
           <p className="text-sm text-muted-foreground">Gerencie os experts e seus projetos</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Criação de novos projetos será disponibilizada em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /> Novo Expert
         </button>
       </div>
@@ -111,8 +112,8 @@ function ExpertsSettings() {
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Edição de projeto será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Exclusão de projeto será disponibilizada em breve.", variant: "destructive" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
             </div>
           </div>
         ))}
@@ -138,7 +139,7 @@ function FunnelsSettings() {
           <h2 className="text-lg font-semibold text-foreground mb-1">Configuração de Funis</h2>
           <p className="text-sm text-muted-foreground">Personalize as etapas dos funis de vendas</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Criação de novos funis será disponibilizada em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /> Novo Funil
         </button>
       </div>
@@ -155,13 +156,13 @@ function FunnelsSettings() {
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
               <span className="text-sm text-foreground flex-1">{stage.name}</span>
               <span className="text-xs text-muted-foreground">Etapa {i + 1}</span>
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Edição de etapa será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Exclusão de etapa será disponibilizada em breve.", variant: "destructive" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
             </div>
           ))}
         </div>
         <div className="px-4 py-3 border-t border-border">
-          <button className="h-8 px-3 rounded-md border border-dashed border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+          <button onClick={() => toast({ title: "Em breve", description: "Adição de nova etapa será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-dashed border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
             <Plus className="w-3.5 h-3.5" /> Adicionar Etapa
           </button>
         </div>
@@ -192,7 +193,7 @@ function TagsSettings() {
           <h2 className="text-lg font-semibold text-foreground mb-1">Gestão de Tags</h2>
           <p className="text-sm text-muted-foreground">Crie e organize tags para segmentação de leads</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Criação de tags será disponibilizada em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /> Nova Tag
         </button>
       </div>
@@ -206,8 +207,8 @@ function TagsSettings() {
             {tags.filter((t) => t.category === cat).map((tag) => (
               <div key={tag.name} className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium ${tag.color}`}>
                 {tag.name}
-                <button className="hover:opacity-70"><Pencil className="w-3 h-3" /></button>
-                <button className="hover:opacity-70"><Trash2 className="w-3 h-3" /></button>
+                <button onClick={() => toast({ title: "Em breve" })} className="hover:opacity-70"><Pencil className="w-3 h-3" /></button>
+                <button onClick={() => toast({ title: "Em breve" })} className="hover:opacity-70"><Trash2 className="w-3 h-3" /></button>
               </div>
             ))}
           </div>
@@ -255,7 +256,7 @@ function AutomationSettings() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
+              <button onClick={() => toast({ title: "Em breve", description: "Edição de automação será disponibilizada em breve." })} className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
                 Editar
               </button>
               <div className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${auto.active ? "bg-primary" : "bg-muted"}`}>

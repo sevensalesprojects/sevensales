@@ -24,6 +24,18 @@ export interface DBLead {
   closer_name?: string;
 }
 
+export interface CreateLeadData {
+  name: string;
+  email?: string;
+  phone?: string;
+  instagram?: string;
+  source?: string;
+  channel?: string;
+  stage_id?: string;
+  funnel_id?: string;
+  value_estimate?: number;
+}
+
 export function useLeads(funnelId?: string) {
   const { currentProject } = useProject();
   const [leads, setLeads] = useState<DBLead[]>([]);
@@ -55,7 +67,6 @@ export function useLeads(funnelId?: string) {
       return;
     }
 
-    // Fetch tags for these leads
     const leadIds = (data || []).map((l) => l.id);
     let tagsMap: Record<string, string[]> = {};
 
@@ -100,5 +111,44 @@ export function useLeads(funnelId?: string) {
     return !error;
   };
 
-  return { leads, loading, refetch: fetchLeads, updateLeadStage };
+  const createLead = async (data: CreateLeadData) => {
+    if (!currentProject) return null;
+
+    const { data: newLead, error } = await supabase
+      .from("leads")
+      .insert({
+        name: data.name,
+        email: data.email || null,
+        phone: data.phone || null,
+        instagram: data.instagram || null,
+        source: data.source || null,
+        channel: data.channel || null,
+        stage_id: data.stage_id || null,
+        funnel_id: data.funnel_id || null,
+        value_estimate: data.value_estimate || null,
+        project_id: currentProject.id,
+      })
+      .select()
+      .single();
+
+    if (!error && newLead) {
+      await fetchLeads();
+      return newLead;
+    }
+    return null;
+  };
+
+  const deleteLead = async (leadId: string) => {
+    const { error } = await supabase
+      .from("leads")
+      .delete()
+      .eq("id", leadId);
+
+    if (!error) {
+      setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    }
+    return !error;
+  };
+
+  return { leads, loading, refetch: fetchLeads, updateLeadStage, createLead, deleteLead };
 }

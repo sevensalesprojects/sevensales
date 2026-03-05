@@ -3,13 +3,16 @@ import { useFunnels } from "@/hooks/useFunnels";
 import { useLeads, DBLead } from "@/hooks/useLeads";
 import { useProject } from "@/contexts/ProjectContext";
 import { LeadDetailPanel } from "@/components/LeadDetailPanel";
+import { CreateLeadDialog } from "@/components/CreateLeadDialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
-  Plus, Filter, LayoutGrid, List, Search, Download, Upload,
+  Plus, LayoutGrid, List, Search, Download, Upload,
   SlidersHorizontal, Trash2, UserCog, ArrowRightLeft, Loader2, Phone, MessageCircle,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 
 type ViewMode = "kanban" | "list";
 
@@ -26,14 +29,18 @@ export default function LeadsPage() {
   const { funnels, loading: funnelsLoading } = useFunnels();
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
-  const { leads, loading: leadsLoading, updateLeadStage } = useLeads(activeFunnel?.id);
+  const { leads, loading: leadsLoading, updateLeadStage, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [showCreateLead, setShowCreateLead] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DBLead | null>(null);
+  const [moveTarget, setMoveTarget] = useState<DBLead | null>(null);
 
   const loading = funnelsLoading || leadsLoading;
+  const stages = activeFunnel?.stages || [];
 
   const filteredLeads = leads.filter((l) => {
     const matchesSearch = !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || (l.phone || "").includes(searchQuery);
@@ -42,7 +49,6 @@ export default function LeadsPage() {
   });
 
   const allTags = Array.from(new Set(leads.flatMap((l) => l.tags)));
-  const stages = activeFunnel?.stages || [];
 
   const handleDrop = async (stageId: string) => {
     if (!draggedLead) return;
@@ -50,12 +56,33 @@ export default function LeadsPage() {
     setDraggedLead(null);
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const success = await deleteLead(deleteTarget.id);
+    if (success) toast({ title: "Lead excluído", description: `${deleteTarget.name} foi removido.` });
+    setDeleteTarget(null);
+  };
+
+  const handleExport = () => {
+    const csv = [
+      ["Nome", "Telefone", "Email", "Origem", "Canal", "Valor", "Tags"].join(","),
+      ...filteredLeads.map(l => [
+        `"${l.name}"`, l.phone || "", l.email || "", l.source || "", l.channel || "",
+        l.value_estimate || "", `"${l.tags.join(";")}"`,
+      ].join(","))
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-${currentProject?.name || "export"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exportado", description: `${filteredLeads.length} leads exportados em CSV.` });
+  };
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -69,41 +96,26 @@ export default function LeadsPage() {
         <div className="flex items-center gap-2">
           {funnels.length > 1 && (
             <Select value={activeFunnel?.id || ""} onValueChange={setSelectedFunnelId}>
-              <SelectTrigger className="w-[160px] h-8 text-xs">
-                <SelectValue placeholder="Funil" />
-              </SelectTrigger>
-              <SelectContent>
-                {funnels.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                ))}
-              </SelectContent>
+              <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="Funil" /></SelectTrigger>
+              <SelectContent>{funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
             </Select>
           )}
           <div className="flex items-center border border-input rounded-md overflow-hidden">
-            <button
-              onClick={() => setViewMode("kanban")}
-              className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-            >
+            <button onClick={() => setViewMode("kanban")} className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-            >
+            <button onClick={() => setViewMode("list")} className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
-            <Upload className="w-3.5 h-3.5" />
-            Importar
+          <button onClick={() => toast({ title: "Em breve", description: "Importação CSV será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+            <Upload className="w-3.5 h-3.5" /> Importar
           </button>
-          <button className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
-            <Download className="w-3.5 h-3.5" />
-            Exportar
+          <button onClick={handleExport} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+            <Download className="w-3.5 h-3.5" /> Exportar
           </button>
-          <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-            <Plus className="w-3.5 h-3.5" />
-            Novo Lead
+          <button onClick={() => setShowCreateLead(true)} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+            <Plus className="w-3.5 h-3.5" /> Novo Lead
           </button>
         </div>
       </div>
@@ -112,29 +124,14 @@ export default function LeadsPage() {
       <div className="px-6 py-3 border-b border-border flex items-center gap-3 shrink-0">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar por nome ou telefone..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
+          <input type="text" placeholder="Buscar por nome ou telefone..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
-          <button
-            onClick={() => setSelectedTag(null)}
-            className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${!selectedTag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-          >
-            Todos
-          </button>
+          <button onClick={() => setSelectedTag(null)} className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${!selectedTag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>Todos</button>
           {allTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-              className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${selectedTag === tag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-            >
-              {tag}
-            </button>
+            <button key={tag} onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+              className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${selectedTag === tag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>{tag}</button>
           ))}
         </div>
       </div>
@@ -146,21 +143,13 @@ export default function LeadsPage() {
             {stages.map((stage) => {
               const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
               return (
-                <div
-                  key={stage.id}
-                  className="w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDrop(stage.id)}
-                >
+                <div key={stage.id} className="w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50" onDragOver={(e) => e.preventDefault()} onDrop={() => handleDrop(stage.id)}>
                   <div className="px-3 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
                       <span className="text-sm font-medium text-foreground">{stage.name}</span>
                       <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">{stageLeads.length}</span>
                     </div>
-                    <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-muted transition-colors">
-                      <SlidersHorizontal className="w-3 h-3 text-muted-foreground" />
-                    </button>
                   </div>
                   <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto scrollbar-thin">
                     {stageLeads.map((lead) => (
@@ -180,7 +169,6 @@ export default function LeadsPage() {
                 <tr className="border-b border-border bg-muted/50">
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nome</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Telefone</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Origem</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Etapa</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tags</th>
@@ -195,33 +183,25 @@ export default function LeadsPage() {
                     <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
                       <td className="px-4 py-3 text-muted-foreground">{lead.phone || "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.email || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{lead.source || "—"}</td>
                       <td className="px-4 py-3">
-                        {stage ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
-                            {stage.name}
-                          </span>
-                        ) : "—"}
+                        {stage ? <span className="inline-flex items-center gap-1.5 text-xs"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />{stage.name}</span> : "—"}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
-                          {lead.tags.map((tag) => (
-                            <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>
-                          ))}
+                          {lead.tags.map((tag) => <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => toast({ title: "Em breve", description: "Atribuição de SDR será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
                             <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
-                          <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Mover funil">
+                          <button onClick={() => setMoveTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Mover etapa">
                             <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
-                          <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
+                          <button onClick={() => setDeleteTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
                             <Trash2 className="w-3.5 h-3.5 text-destructive" />
                           </button>
                         </div>
@@ -236,48 +216,72 @@ export default function LeadsPage() {
       )}
 
       {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} />}
+
+      <CreateLeadDialog
+        open={showCreateLead}
+        onOpenChange={setShowCreateLead}
+        onSubmit={async (data) => {
+          const result = await createLead(data);
+          if (result) toast({ title: "Lead criado", description: `${data.name} foi adicionado.` });
+        }}
+        stages={stages}
+        funnelId={activeFunnel?.id}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Excluir Lead"
+        description={`Tem certeza que deseja excluir "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={handleDelete}
+        confirmLabel="Excluir"
+        destructive
+      />
+
+      {/* Move stage dialog */}
+      {moveTarget && (
+        <div className="fixed inset-0 bg-foreground/20 z-50 flex items-center justify-center" onClick={() => setMoveTarget(null)}>
+          <div className="bg-card border border-border rounded-lg p-5 w-80 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-foreground">Mover "{moveTarget.name}"</h3>
+            <div className="space-y-1.5">
+              {stages.map((s) => (
+                <button
+                  key={s.id}
+                  disabled={s.id === moveTarget.stage_id}
+                  onClick={async () => {
+                    await updateLeadStage(moveTarget.id, s.id);
+                    toast({ title: "Lead movido", description: `${moveTarget.name} → ${s.name}` });
+                    setMoveTarget(null);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${s.id === moveTarget.stage_id ? "bg-muted text-muted-foreground cursor-not-allowed" : "hover:bg-muted text-foreground"}`}
+                >
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                  {s.name}
+                  {s.id === moveTarget.stage_id && <span className="text-[10px] text-muted-foreground ml-auto">atual</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function LeadCardDB({ lead, onDragStart, onClick }: { lead: DBLead; onDragStart: () => void; onClick: () => void }) {
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onClick={onClick}
-      className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group"
-    >
+    <div draggable onDragStart={onDragStart} onClick={onClick} className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group">
       <div className="flex items-start justify-between mb-2">
         <p className="text-sm font-medium text-card-foreground leading-tight">{lead.name}</p>
-        {lead.value_estimate && (
-          <span className="text-xs font-semibold text-primary">
-            R$ {lead.value_estimate.toLocaleString("pt-BR")}
-          </span>
-        )}
+        {lead.value_estimate && <span className="text-xs font-semibold text-primary">R$ {lead.value_estimate.toLocaleString("pt-BR")}</span>}
       </div>
-      {lead.phone && (
-        <div className="flex items-center gap-2 mb-2">
-          <Phone className="w-3 h-3 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">{lead.phone}</span>
-        </div>
-      )}
+      {lead.phone && <div className="flex items-center gap-2 mb-2"><Phone className="w-3 h-3 text-muted-foreground" /><span className="text-xs text-muted-foreground">{lead.phone}</span></div>}
       <div className="flex flex-wrap gap-1 mb-2">
-        {lead.tags.map((tag) => (
-          <span
-            key={tag}
-            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}
-          >
-            {tag}
-          </span>
-        ))}
+        {lead.tags.map((tag) => <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>)}
       </div>
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground">{lead.source || "—"}</span>
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <MessageCircle className="w-3 h-3" />
-          {new Date(lead.updated_at).toLocaleDateString("pt-BR")}
-        </div>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><MessageCircle className="w-3 h-3" />{new Date(lead.updated_at).toLocaleDateString("pt-BR")}</div>
       </div>
     </div>
   );
