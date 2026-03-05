@@ -66,11 +66,11 @@ export default function FunnelsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">Funil de Vendas</h1>
-            <p className="text-sm text-muted-foreground">{currentProject?.name}</p>
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 md:gap-4 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-base md:text-lg font-semibold text-foreground">Funil de Vendas</h1>
+            <p className="text-xs md:text-sm text-muted-foreground truncate">{currentProject?.name}</p>
           </div>
           {funnels.length > 1 && (
             <Select value={activeFunnel.id} onValueChange={setSelectedFunnelId}>
