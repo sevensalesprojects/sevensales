@@ -193,7 +193,7 @@ function TagsSettings() {
           <h2 className="text-lg font-semibold text-foreground mb-1">Gestão de Tags</h2>
           <p className="text-sm text-muted-foreground">Crie e organize tags para segmentação de leads</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Criação de tags será disponibilizada em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /> Nova Tag
         </button>
       </div>
