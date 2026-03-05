@@ -495,7 +495,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Funnel */}
-        <div className="p-5 rounded-xl bg-card border border-border">
+        <div className="p-4 md:p-5 rounded-xl bg-card border border-border">
           <h3 className="text-sm font-semibold text-card-foreground mb-4">Funil de Conversão</h3>
           <div className="space-y-2.5">
             {funnelData.map((item) => (

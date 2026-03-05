@@ -109,7 +109,7 @@ export default function FunnelsPage() {
             return (
               <div
                 key={stage.id}
-                className="w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
+                className="w-64 md:w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(stage.id)}
               >
