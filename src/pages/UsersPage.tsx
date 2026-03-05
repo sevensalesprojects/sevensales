@@ -57,7 +57,7 @@ export default function UsersPage() {
           <h1 className="text-lg font-semibold text-foreground">Usuários</h1>
           <p className="text-sm text-muted-foreground">Gestão de acesso e permissões · {mockUsers.length} usuários</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Convite de novos usuários será disponibilizado em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" />
           Novo Usuário
         </button>
