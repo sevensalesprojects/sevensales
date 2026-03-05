@@ -240,7 +240,7 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} />}
+      {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} onFieldUpdate={updateLeadField} />}
 
       <CreateLeadDialog
         open={showCreateLead}
