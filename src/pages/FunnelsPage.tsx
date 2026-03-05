@@ -66,11 +66,11 @@ export default function FunnelsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">Funil de Vendas</h1>
-            <p className="text-sm text-muted-foreground">{currentProject?.name}</p>
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 md:gap-4 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-base md:text-lg font-semibold text-foreground">Funil de Vendas</h1>
+            <p className="text-xs md:text-sm text-muted-foreground truncate">{currentProject?.name}</p>
           </div>
           {funnels.length > 1 && (
             <Select value={activeFunnel.id} onValueChange={setSelectedFunnelId}>
@@ -102,14 +102,14 @@ export default function FunnelsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto p-4">
+      <div className="flex-1 overflow-x-auto p-3 md:p-4">
         <div className="flex gap-3 h-full min-w-max">
           {stages.map((stage) => {
             const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
             return (
               <div
                 key={stage.id}
-                className="w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
+                className="w-64 md:w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(stage.id)}
               >

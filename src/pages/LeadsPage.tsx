@@ -5,6 +5,7 @@ import { useProject } from "@/contexts/ProjectContext";
 import { LeadDetailPanel } from "@/components/LeadDetailPanel";
 import { CreateLeadDialog } from "@/components/CreateLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Plus, LayoutGrid, List, Search, Download, Upload,
   SlidersHorizontal, Trash2, UserCog, ArrowRightLeft, Loader2, Phone, MessageCircle,
@@ -38,6 +39,7 @@ export default function LeadsPage() {
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DBLead | null>(null);
   const [moveTarget, setMoveTarget] = useState<DBLead | null>(null);
+  const isMobile = useIsMobile();
 
   const loading = funnelsLoading || leadsLoading;
   const stages = activeFunnel?.stages || [];
@@ -88,13 +90,13 @@ export default function LeadsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-lg font-semibold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground">{currentProject?.name} · {filteredLeads.length} leads</p>
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0 gap-2">
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-semibold text-foreground">Leads</h1>
+          <p className="text-xs md:text-sm text-muted-foreground truncate">{currentProject?.name} · {filteredLeads.length} leads</p>
         </div>
-        <div className="flex items-center gap-2">
-          {funnels.length > 1 && (
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+          {funnels.length > 1 && !isMobile && (
             <Select value={activeFunnel?.id || ""} onValueChange={setSelectedFunnelId}>
               <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="Funil" /></SelectTrigger>
               <SelectContent>{funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
@@ -108,26 +110,41 @@ export default function LeadsPage() {
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button onClick={() => toast({ title: "Em breve", description: "Importação CSV será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
-            <Upload className="w-3.5 h-3.5" /> Importar
-          </button>
-          <button onClick={handleExport} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
-            <Download className="w-3.5 h-3.5" /> Exportar
-          </button>
+          {!isMobile && (
+            <>
+              <button onClick={() => toast({ title: "Em breve", description: "Importação CSV será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+                <Upload className="w-3.5 h-3.5" /> Importar
+              </button>
+              <button onClick={handleExport} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+                <Download className="w-3.5 h-3.5" /> Exportar
+              </button>
+            </>
+          )}
           <button onClick={() => setShowCreateLead(true)} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-            <Plus className="w-3.5 h-3.5" /> Novo Lead
+            <Plus className="w-3.5 h-3.5" />
+            {!isMobile && "Novo Lead"}
           </button>
         </div>
       </div>
 
+      {/* Mobile funnel selector */}
+      {isMobile && funnels.length > 1 && (
+        <div className="px-4 py-2 border-b border-border shrink-0">
+          <Select value={activeFunnel?.id || ""} onValueChange={setSelectedFunnelId}>
+            <SelectTrigger className="w-full h-8 text-xs"><SelectValue placeholder="Funil" /></SelectTrigger>
+            <SelectContent>{funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Filters Bar */}
-      <div className="px-6 py-3 border-b border-border flex items-center gap-3 shrink-0">
-        <div className="relative flex-1 max-w-xs">
+      <div className="px-4 md:px-6 py-2 md:py-3 border-b border-border flex items-center gap-2 md:gap-3 shrink-0 overflow-x-auto">
+        <div className="relative flex-1 min-w-[150px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input type="text" placeholder="Buscar por nome ou telefone..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          <input type="text" placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             className="h-8 w-full rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin shrink-0">
           <button onClick={() => setSelectedTag(null)} className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${!selectedTag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>Todos</button>
           {allTags.map((tag) => (
             <button key={tag} onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
@@ -138,12 +155,12 @@ export default function LeadsPage() {
 
       {/* Content */}
       {viewMode === "kanban" ? (
-        <div className="flex-1 overflow-x-auto p-4">
+        <div className="flex-1 overflow-x-auto p-3 md:p-4">
           <div className="flex gap-3 h-full min-w-max">
             {stages.map((stage) => {
               const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
               return (
-                <div key={stage.id} className="w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50" onDragOver={(e) => e.preventDefault()} onDrop={() => handleDrop(stage.id)}>
+                <div key={stage.id} className={`flex flex-col rounded-lg bg-muted/40 border border-border/50 ${isMobile ? "w-64" : "w-72"}`} onDragOver={(e) => e.preventDefault()} onDrop={() => handleDrop(stage.id)}>
                   <div className="px-3 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
@@ -162,56 +179,64 @@ export default function LeadsPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-4">
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nome</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Telefone</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Origem</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Etapa</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tags</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valor</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLeads.map((lead) => {
-                  const stage = stages.find((s) => s.id === lead.stage_id);
-                  return (
-                    <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.phone || "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.source || "—"}</td>
-                      <td className="px-4 py-3">
-                        {stage ? <span className="inline-flex items-center gap-1.5 text-xs"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />{stage.name}</span> : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {lead.tags.map((tag) => <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => toast({ title: "Em breve", description: "Atribuição de SDR será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
-                            <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
-                          </button>
-                          <button onClick={() => setMoveTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Mover etapa">
-                            <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                          </button>
-                          <button onClick={() => setDeleteTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="flex-1 overflow-auto p-3 md:p-4">
+          {isMobile ? (
+            <div className="space-y-2">
+              {filteredLeads.map((lead) => (
+                <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nome</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Telefone</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Origem</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Etapa</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tags</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valor</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead) => {
+                    const stage = stages.find((s) => s.id === lead.stage_id);
+                    return (
+                      <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors">
+                        <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{lead.phone || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{lead.source || "—"}</td>
+                        <td className="px-4 py-3">
+                          {stage ? <span className="inline-flex items-center gap-1.5 text-xs"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />{stage.name}</span> : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {lead.tags.map((tag) => <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => toast({ title: "Em breve", description: "Atribuição de SDR será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
+                              <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                            <button onClick={() => setMoveTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Mover etapa">
+                              <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                            <button onClick={() => setDeleteTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -240,8 +265,8 @@ export default function LeadsPage() {
 
       {/* Move stage dialog */}
       {moveTarget && (
-        <div className="fixed inset-0 bg-foreground/20 z-50 flex items-center justify-center" onClick={() => setMoveTarget(null)}>
-          <div className="bg-card border border-border rounded-lg p-5 w-80 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-foreground/20 z-50 flex items-center justify-center p-4" onClick={() => setMoveTarget(null)}>
+          <div className="bg-card border border-border rounded-lg p-5 w-full max-w-xs space-y-3" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-foreground">Mover "{moveTarget.name}"</h3>
             <div className="space-y-1.5">
               {stages.map((s) => (

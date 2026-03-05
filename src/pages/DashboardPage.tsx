@@ -253,12 +253,12 @@ export default function DashboardPage() {
   }, [datePreset, customFrom, customTo]);
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full scrollbar-thin">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6 overflow-y-auto h-full scrollbar-thin">
       {/* Header with filters */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">{currentExpert.name} · Admin Master</p>
+          <h1 className="text-base md:text-lg font-semibold text-foreground">Dashboard</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">{currentExpert.name} · Admin Master</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Project Filter */}
@@ -461,9 +461,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Leads per day */}
-        <div className="col-span-2 p-5 rounded-xl bg-card border border-border">
+        <div className="lg:col-span-2 p-4 md:p-5 rounded-xl bg-card border border-border">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-card-foreground">Leads por Dia</h3>
             <Select value={channelFilter} onValueChange={(v) => setChannelFilter(v as ChannelFilter)}>
@@ -495,7 +495,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Funnel */}
-        <div className="p-5 rounded-xl bg-card border border-border">
+        <div className="p-4 md:p-5 rounded-xl bg-card border border-border">
           <h3 className="text-sm font-semibold text-card-foreground mb-4">Funil de Conversão</h3>
           <div className="space-y-2.5">
             {funnelData.map((item) => (
