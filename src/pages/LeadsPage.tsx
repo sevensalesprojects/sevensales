@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { defaultStages, mockLeads, Lead } from "@/data/mockData";
-import { LeadCard } from "@/components/LeadCard";
+import { useFunnels } from "@/hooks/useFunnels";
+import { useLeads, DBLead } from "@/hooks/useLeads";
+import { useProject } from "@/contexts/ProjectContext";
 import { LeadDetailPanel } from "@/components/LeadDetailPanel";
-import { useExpert } from "@/contexts/ExpertContext";
 import {
   Plus, Filter, LayoutGrid, List, Search, Download, Upload,
-  SlidersHorizontal, MoreHorizontal, Trash2, UserCog, ArrowRightLeft,
+  SlidersHorizontal, Trash2, UserCog, ArrowRightLeft, Loader2, Phone, MessageCircle,
 } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 type ViewMode = "kanban" | "list";
 
@@ -19,29 +22,41 @@ const tagColors: Record<string, string> = {
 };
 
 export default function LeadsPage() {
-  const { currentExpert } = useExpert();
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const { currentProject } = useProject();
+  const { funnels, loading: funnelsLoading } = useFunnels();
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
+  const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
+  const { leads, loading: leadsLoading, updateLeadStage } = useLeads(activeFunnel?.id);
+  const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
+  const loading = funnelsLoading || leadsLoading;
+
   const filteredLeads = leads.filter((l) => {
-    const matchesSearch = !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.phone.includes(searchQuery);
-    const matchesTag = !selectedTag || l.tags.includes(selectedTag);
+    const matchesSearch = !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || (l.phone || "").includes(searchQuery);
+    const matchesTag = !selectedTag || l.tags.map(t => t.toLowerCase()).includes(selectedTag.toLowerCase());
     return matchesSearch && matchesTag;
   });
 
-  const handleDragStart = (leadId: string) => setDraggedLead(leadId);
-  const handleDrop = (stageId: string) => {
+  const allTags = Array.from(new Set(leads.flatMap((l) => l.tags)));
+  const stages = activeFunnel?.stages || [];
+
+  const handleDrop = async (stageId: string) => {
     if (!draggedLead) return;
-    setLeads((prev) => prev.map((l) => (l.id === draggedLead ? { ...l, stage: stageId } : l)));
+    await updateLeadStage(draggedLead, stageId);
     setDraggedLead(null);
   };
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  const allTags = Array.from(new Set(leads.flatMap((l) => l.tags)));
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -49,10 +64,21 @@ export default function LeadsPage() {
       <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-lg font-semibold text-foreground">Leads</h1>
-          <p className="text-sm text-muted-foreground">{currentExpert.name} · {filteredLeads.length} leads</p>
+          <p className="text-sm text-muted-foreground">{currentProject?.name} · {filteredLeads.length} leads</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View Toggle */}
+          {funnels.length > 1 && (
+            <Select value={activeFunnel?.id || ""} onValueChange={setSelectedFunnelId}>
+              <SelectTrigger className="w-[160px] h-8 text-xs">
+                <SelectValue placeholder="Funil" />
+              </SelectTrigger>
+              <SelectContent>
+                {funnels.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex items-center border border-input rounded-md overflow-hidden">
             <button
               onClick={() => setViewMode("kanban")}
@@ -117,13 +143,13 @@ export default function LeadsPage() {
       {viewMode === "kanban" ? (
         <div className="flex-1 overflow-x-auto p-4">
           <div className="flex gap-3 h-full min-w-max">
-            {defaultStages.map((stage) => {
-              const stageLeads = filteredLeads.filter((l) => l.stage === stage.id);
+            {stages.map((stage) => {
+              const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
               return (
                 <div
                   key={stage.id}
                   className="w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
-                  onDragOver={handleDragOver}
+                  onDragOver={(e) => e.preventDefault()}
                   onDrop={() => handleDrop(stage.id)}
                 >
                   <div className="px-3 py-3 flex items-center justify-between">
@@ -138,7 +164,7 @@ export default function LeadsPage() {
                   </div>
                   <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto scrollbar-thin">
                     {stageLeads.map((lead) => (
-                      <LeadCard key={lead.id} lead={lead} onDragStart={() => handleDragStart(lead.id)} onClick={() => setSelectedLead(lead)} />
+                      <LeadCardDB key={lead.id} lead={lead} onDragStart={() => setDraggedLead(lead.id)} onClick={() => setSelectedLead(lead)} />
                     ))}
                   </div>
                 </div>
@@ -157,7 +183,6 @@ export default function LeadsPage() {
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Origem</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Etapa</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">SDR</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tags</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valor</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ações</th>
@@ -165,28 +190,29 @@ export default function LeadsPage() {
               </thead>
               <tbody>
                 {filteredLeads.map((lead) => {
-                  const stage = defaultStages.find((s) => s.id === lead.stage);
+                  const stage = stages.find((s) => s.id === lead.stage_id);
                   return (
                     <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.phone}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.email}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.origin}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{lead.phone || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{lead.email || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{lead.source || "—"}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage?.color }} />
-                          {stage?.name}
-                        </span>
+                        {stage ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
+                            {stage.name}
+                          </span>
+                        ) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{lead.sdr}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {lead.tags.map((tag) => (
-                            <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag] || "bg-muted text-muted-foreground"}`}>{tag}</span>
+                            <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-foreground font-medium">{lead.value ? `R$ ${lead.value.toLocaleString("pt-BR")}` : "—"}</td>
+                      <td className="px-4 py-3 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
@@ -210,6 +236,49 @@ export default function LeadsPage() {
       )}
 
       {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} />}
+    </div>
+  );
+}
+
+function LeadCardDB({ lead, onDragStart, onClick }: { lead: DBLead; onDragStart: () => void; onClick: () => void }) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onClick={onClick}
+      className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group"
+    >
+      <div className="flex items-start justify-between mb-2">
+        <p className="text-sm font-medium text-card-foreground leading-tight">{lead.name}</p>
+        {lead.value_estimate && (
+          <span className="text-xs font-semibold text-primary">
+            R$ {lead.value_estimate.toLocaleString("pt-BR")}
+          </span>
+        )}
+      </div>
+      {lead.phone && (
+        <div className="flex items-center gap-2 mb-2">
+          <Phone className="w-3 h-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">{lead.phone}</span>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1 mb-2">
+        {lead.tags.map((tag) => (
+          <span
+            key={tag}
+            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground">{lead.source || "—"}</span>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <MessageCircle className="w-3 h-3" />
+          {new Date(lead.updated_at).toLocaleDateString("pt-BR")}
+        </div>
+      </div>
     </div>
   );
 }
