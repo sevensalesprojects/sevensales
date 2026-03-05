@@ -40,13 +40,15 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ProjectProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-background">
-        <CRMSidebar />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <TopBar />
-          <main className="flex-1 overflow-hidden">{children}</main>
+      <ExpertProvider>
+        <div className="flex h-screen w-full overflow-hidden bg-background">
+          <CRMSidebar />
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <TopBar />
+            <main className="flex-1 overflow-hidden">{children}</main>
+          </div>
         </div>
-      </div>
+      </ExpertProvider>
     </ProjectProvider>
   );
 }
