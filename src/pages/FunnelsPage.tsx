@@ -23,7 +23,7 @@ export default function FunnelsPage() {
   const { funnels, loading: funnelsLoading } = useFunnels();
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
-  const { leads, loading: leadsLoading, updateLeadStage, createLead } = useLeads(activeFunnel?.id);
+  const { leads, loading: leadsLoading, updateLeadStage, updateLeadField, createLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
   const [showCreateLead, setShowCreateLead] = useState(false);
