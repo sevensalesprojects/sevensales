@@ -139,7 +139,7 @@ function FunnelsSettings() {
           <h2 className="text-lg font-semibold text-foreground mb-1">Configuração de Funis</h2>
           <p className="text-sm text-muted-foreground">Personalize as etapas dos funis de vendas</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Criação de novos funis será disponibilizada em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /> Novo Funil
         </button>
       </div>
