@@ -11,14 +11,17 @@ import {
   Search,
   Bell,
   Handshake,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useExpert } from "@/contexts/ExpertContext";
+import { useProject } from "@/contexts/ProjectContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
@@ -33,8 +36,37 @@ const navItems = [
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
+const projectColors = [
+  "hsl(175, 80%, 36%)",
+  "hsl(205, 80%, 50%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(280, 65%, 55%)",
+  "hsl(340, 75%, 55%)",
+  "hsl(150, 60%, 40%)",
+  "hsl(20, 80%, 50%)",
+];
+
+function getProjectInitials(name: string) {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function getProjectColor(index: number) {
+  return projectColors[index % projectColors.length];
+}
+
 export function CRMSidebar() {
-  const { currentExpert, setCurrentExpert, experts } = useExpert();
+  const { projects, currentProject, setCurrentProject } = useProject();
+  const { profile, signOut, roles } = useAuth();
+
+  const roleLabel = roles.includes("admin_master")
+    ? "Admin Master"
+    : roles.includes("admin")
+    ? "Admin"
+    : roles.includes("sdr")
+    ? "SDR"
+    : roles.includes("closer")
+    ? "Closer"
+    : "Usuário";
 
   return (
     <aside className="w-60 shrink-0 bg-sidebar border-r border-sidebar-border flex flex-col h-screen sticky top-0">
@@ -48,32 +80,44 @@ export function CRMSidebar() {
         </div>
       </div>
 
-      {/* Expert Selector */}
+      {/* Project Selector */}
       <div className="px-3 py-3 border-b border-sidebar-border">
         <DropdownMenu>
           <DropdownMenuTrigger className="w-full flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent transition-colors text-left">
-            <div
-              className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
-              style={{ backgroundColor: currentExpert.color, color: '#fff' }}
-            >
-              {currentExpert.initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-sidebar-accent-foreground truncate">{currentExpert.name}</p>
-              <p className="text-[10px] text-sidebar-foreground">Projeto ativo</p>
-            </div>
+            {currentProject ? (
+              <>
+                <div
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ backgroundColor: getProjectColor(projects.indexOf(currentProject)), color: '#fff' }}
+                >
+                  {getProjectInitials(currentProject.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-sidebar-accent-foreground truncate">{currentProject.name}</p>
+                  <p className="text-[10px] text-sidebar-foreground">Projeto ativo</p>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-sidebar-accent-foreground">Nenhum projeto</p>
+                <p className="text-[10px] text-sidebar-foreground">Crie um projeto</p>
+              </div>
+            )}
             <ChevronDown className="w-3.5 h-3.5 text-sidebar-foreground shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-52">
-            {experts.map((expert) => (
-              <DropdownMenuItem key={expert.id} onClick={() => setCurrentExpert(expert)}>
+            {projects.length === 0 && (
+              <DropdownMenuItem disabled>Nenhum projeto disponível</DropdownMenuItem>
+            )}
+            {projects.map((project, i) => (
+              <DropdownMenuItem key={project.id} onClick={() => setCurrentProject(project)}>
                 <div
                   className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold mr-2"
-                  style={{ backgroundColor: expert.color, color: '#fff' }}
+                  style={{ backgroundColor: getProjectColor(i), color: '#fff' }}
                 >
-                  {expert.initials}
+                  {getProjectInitials(project.name)}
                 </div>
-                {expert.name}
+                {project.name}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -96,17 +140,33 @@ export function CRMSidebar() {
         ))}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom - User */}
       <div className="px-3 py-3 border-t border-sidebar-border">
-        <div className="flex items-center gap-2.5 px-2.5">
-          <div className="w-7 h-7 rounded-full bg-sidebar-accent flex items-center justify-center">
-            <span className="text-[10px] font-medium text-sidebar-accent-foreground">AD</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-sidebar-accent-foreground truncate">Admin</p>
-            <p className="text-[10px] text-sidebar-foreground">admin@vendaflow.com</p>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md hover:bg-sidebar-accent transition-colors">
+            <div className="w-7 h-7 rounded-full bg-sidebar-accent flex items-center justify-center">
+              <span className="text-[10px] font-medium text-sidebar-accent-foreground">
+                {profile?.full_name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "U"}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs font-medium text-sidebar-accent-foreground truncate">
+                {profile?.full_name || "Usuário"}
+              </p>
+              <p className="text-[10px] text-sidebar-foreground">{roleLabel}</p>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+              {profile?.email}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOut} className="text-destructive">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );
