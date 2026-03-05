@@ -338,13 +338,13 @@ export default function DashboardPage() {
                     onSelect={handleDateSelect}
                     locale={ptBR}
                     className="pointer-events-auto"
-                    modifiers={{
-                      range: customFrom && customTo
-                        ? { from: customFrom, to: customTo }
+                    modifiers={
+                      customFrom && customTo
+                        ? { range: { from: customFrom, to: customTo } }
                         : customFrom
-                        ? { from: customFrom, to: customFrom }
-                        : {},
-                    }}
+                        ? { range: customFrom }
+                        : {}
+                    }
                     modifiersClassNames={{
                       range: "bg-primary/20 text-primary-foreground",
                     }}
