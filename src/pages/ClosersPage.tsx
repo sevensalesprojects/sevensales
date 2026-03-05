@@ -104,6 +104,17 @@ export default function ClosersPage() {
           <p className="text-sm text-muted-foreground">{currentExpert.name} · Gestão Comercial</p>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-[150px] h-8 text-xs bg-card border-border">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Projetos</SelectItem>
+              {experts.map((e) => (
+                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={closerFilter} onValueChange={setCloserFilter}>
             <SelectTrigger className="w-[140px] h-8 text-xs bg-card border-border">
               <SelectValue placeholder="Closer" />

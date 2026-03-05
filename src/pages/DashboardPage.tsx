@@ -120,8 +120,8 @@ export default function DashboardPage() {
       return true;
     });
 
-  const filteredLeads = useMemo(() => filterLeadsByRange(from, to), [from, to, sdrFilter, closerFilter]);
-  const prevLeads = useMemo(() => filterLeadsByRange(prevFrom, prevTo), [prevFrom, prevTo, sdrFilter, closerFilter]);
+  const filteredLeads = useMemo(() => filterLeadsByRange(from, to), [from, to, sdrFilter, closerFilter, projectFilter]);
+  const prevLeads = useMemo(() => filterLeadsByRange(prevFrom, prevTo), [prevFrom, prevTo, sdrFilter, closerFilter, projectFilter]);
 
   // KPIs current
   const leadsToday = filteredLeads.filter((l) => l.createdAt === TODAY);
