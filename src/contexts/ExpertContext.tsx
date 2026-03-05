@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from "react";
+import { useProject } from "@/contexts/ProjectContext";
 
 export interface Expert {
   id: string;
@@ -7,13 +8,19 @@ export interface Expert {
   color: string;
 }
 
-const experts: Expert[] = [
-  { id: "1", name: "Expert Fábio", initials: "EF", color: "hsl(175, 80%, 36%)" },
-  { id: "2", name: "Expert Leonardo", initials: "EL", color: "hsl(205, 80%, 50%)" },
-  { id: "3", name: "Expert Josias", initials: "EJ", color: "hsl(38, 92%, 50%)" },
-  { id: "4", name: "Expert Tiago Leão", initials: "TL", color: "hsl(280, 65%, 55%)" },
-  { id: "5", name: "Expert Will", initials: "EW", color: "hsl(340, 75%, 55%)" },
+const projectColors = [
+  "hsl(175, 80%, 36%)",
+  "hsl(205, 80%, 50%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(280, 65%, 55%)",
+  "hsl(340, 75%, 55%)",
+  "hsl(150, 60%, 40%)",
+  "hsl(20, 80%, 50%)",
 ];
+
+function getInitials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 
 interface ExpertContextType {
   currentExpert: Expert;
@@ -24,7 +31,28 @@ interface ExpertContextType {
 const ExpertContext = createContext<ExpertContextType | null>(null);
 
 export function ExpertProvider({ children }: { children: ReactNode }) {
-  const [currentExpert, setCurrentExpert] = useState<Expert>(experts[0]);
+  const { projects, currentProject, setCurrentProject } = useProject();
+
+  const experts: Expert[] = projects.map((p, i) => ({
+    id: p.id,
+    name: p.name,
+    initials: getInitials(p.name),
+    color: projectColors[i % projectColors.length],
+  }));
+
+  const currentExpert: Expert = currentProject
+    ? {
+        id: currentProject.id,
+        name: currentProject.name,
+        initials: getInitials(currentProject.name),
+        color: projectColors[projects.indexOf(currentProject) % projectColors.length],
+      }
+    : { id: "", name: "Sem Projeto", initials: "SP", color: projectColors[0] };
+
+  const setCurrentExpert = (expert: Expert) => {
+    const project = projects.find((p) => p.id === expert.id);
+    if (project) setCurrentProject(project);
+  };
 
   return (
     <ExpertContext.Provider value={{ currentExpert, setCurrentExpert, experts }}>
