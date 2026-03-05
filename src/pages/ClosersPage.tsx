@@ -24,8 +24,9 @@ const currencyFormat = (value: number, currency: Currency) => {
 };
 
 export default function ClosersPage() {
-  const { currentExpert } = useExpert();
+  const { currentExpert, experts } = useExpert();
   const [closerFilter, setCloserFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [currency, setCurrency] = useState<Currency>("BRL");
 
   const closers = useMemo(() => {
@@ -35,10 +36,11 @@ export default function ClosersPage() {
 
   const filteredLeads = useMemo(() => {
     return mockLeads.filter((l) => {
+      if (projectFilter !== "all" && l.expertId !== projectFilter) return false;
       if (closerFilter !== "all" && l.closer !== closerFilter) return false;
       return true;
     });
-  }, [closerFilter]);
+  }, [closerFilter, projectFilter]);
 
   const leadsWithAppointment = filteredLeads.filter((l) => l.hasAppointment);
   const callsRealized = leadsWithAppointment.filter((l) => l.appointmentAttended).length;
