@@ -207,8 +207,8 @@ function TagsSettings() {
             {tags.filter((t) => t.category === cat).map((tag) => (
               <div key={tag.name} className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium ${tag.color}`}>
                 {tag.name}
-                <button className="hover:opacity-70"><Pencil className="w-3 h-3" /></button>
-                <button className="hover:opacity-70"><Trash2 className="w-3 h-3" /></button>
+                <button onClick={() => toast({ title: "Em breve" })} className="hover:opacity-70"><Pencil className="w-3 h-3" /></button>
+                <button onClick={() => toast({ title: "Em breve" })} className="hover:opacity-70"><Trash2 className="w-3 h-3" /></button>
               </div>
             ))}
           </div>
