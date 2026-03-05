@@ -105,7 +105,7 @@ export default function IntegrationsPage() {
                     </button>
                   </>
                 ) : (
-                  <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+                  <button onClick={() => toast({ title: "Em breve", description: `Conexão com ${int.name} será disponibilizada em breve.` })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
                     {int.id === "whatsapp" ? <QrCode className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
                     Conectar
                   </button>

@@ -256,7 +256,7 @@ function AutomationSettings() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
+              <button onClick={() => toast({ title: "Em breve", description: "Edição de automação será disponibilizada em breve." })} className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
                 Editar
               </button>
               <div className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${auto.active ? "bg-primary" : "bg-muted"}`}>

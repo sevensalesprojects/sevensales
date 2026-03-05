@@ -60,7 +60,7 @@ export default function SDRsPage() {
           <h1 className="text-lg font-semibold text-foreground">SDRs</h1>
           <p className="text-sm text-muted-foreground">Gestão da equipe comercial · {mockSDRs.filter((s) => s.status === "active").length} ativos</p>
         </div>
-        <button className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+        <button onClick={() => toast({ title: "Em breve", description: "Cadastro de SDRs será disponibilizado na gestão de usuários." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" />
           Novo SDR
         </button>
