@@ -137,7 +137,7 @@ export default function FunnelsPage() {
         </div>
       </div>
 
-      {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} />}
+      {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} onFieldUpdate={updateLeadField} />}
       <CreateLeadDialog
         open={showCreateLead}
         onOpenChange={setShowCreateLead}
