@@ -52,20 +52,20 @@ export default function UsersPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">Usuários</h1>
-          <p className="text-sm text-muted-foreground">Gestão de acesso e permissões · {mockUsers.length} usuários</p>
+          <h1 className="text-base md:text-lg font-semibold text-foreground">Usuários</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Gestão de acesso · {mockUsers.length} usuários</p>
         </div>
         <button onClick={() => toast({ title: "Em breve", description: "Convite de novos usuários será disponibilizado em breve." })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" />
-          Novo Usuário
+          <span className="hidden md:inline">Novo Usuário</span>
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Role summary */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {(["admin_master", "admin", "gestor", "sdr"] as const).map((role) => {
             const count = mockUsers.filter((u) => u.role === role).length;
             return (
