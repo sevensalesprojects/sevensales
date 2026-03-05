@@ -102,7 +102,7 @@ export default function FunnelsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto p-4">
+      <div className="flex-1 overflow-x-auto p-3 md:p-4">
         <div className="flex gap-3 h-full min-w-max">
           {stages.map((stage) => {
             const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
