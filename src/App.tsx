@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProjectProvider } from "@/contexts/ProjectContext";
+import { ExpertProvider } from "@/contexts/ExpertContext";
+import { ProjectProvider } from "@/contexts/ProjectContext";
 import { CRMSidebar, TopBar } from "@/components/CRMLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import FunnelsPage from "@/pages/FunnelsPage";
