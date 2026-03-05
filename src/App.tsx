@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProjectProvider } from "@/contexts/ProjectContext";
 import { ExpertProvider } from "@/contexts/ExpertContext";
-import { CRMSidebar, TopBar } from "@/components/CRMLayout";
+import { CRMSidebar, TopBar, BottomNav } from "@/components/CRMLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import FunnelsPage from "@/pages/FunnelsPage";
 import LeadsPage from "@/pages/LeadsPage";
@@ -44,8 +44,9 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
           <CRMSidebar />
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <TopBar />
-            <main className="flex-1 overflow-hidden">{children}</main>
+            <main className="flex-1 overflow-hidden pb-14 md:pb-0">{children}</main>
           </div>
+          <BottomNav />
         </div>
       </ExpertProvider>
     </ProjectProvider>
