@@ -112,8 +112,8 @@ function ExpertsSettings() {
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
-              <button className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Edição de projeto será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></button>
+              <button onClick={() => toast({ title: "Em breve", description: "Exclusão de projeto será disponibilizada em breve.", variant: "destructive" })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
             </div>
           </div>
         ))}
