@@ -162,7 +162,7 @@ function FunnelsSettings() {
           ))}
         </div>
         <div className="px-4 py-3 border-t border-border">
-          <button className="h-8 px-3 rounded-md border border-dashed border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+          <button onClick={() => toast({ title: "Em breve", description: "Adição de nova etapa será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-dashed border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
             <Plus className="w-3.5 h-3.5" /> Adicionar Etapa
           </button>
         </div>
