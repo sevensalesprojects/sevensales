@@ -45,14 +45,14 @@ export default function IntegrationsPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">Integrações</h1>
-          <p className="text-sm text-muted-foreground">Central de conexões com plataformas externas</p>
+          <h1 className="text-base md:text-lg font-semibold text-foreground">Integrações</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Conexões com plataformas externas</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6 space-y-4">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4">
         {integrations.map((int) => (
           <div key={int.id} className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="p-5 flex items-start gap-4">
