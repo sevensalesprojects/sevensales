@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Search,
   Bell,
+  Handshake,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useExpert } from "@/contexts/ExpertContext";
@@ -22,10 +23,11 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Funis", url: "/funnels", icon: Kanban },
   { title: "Leads", url: "/leads", icon: Users },
   { title: "Conversas", url: "/conversations", icon: MessageSquare },
+  { title: "Funis", url: "/funnels", icon: Kanban },
   { title: "SDRs", url: "/sdrs", icon: UserCog },
+  { title: "Closers", url: "/closers", icon: Handshake },
   { title: "Integrações", url: "/integrations", icon: Plug },
   { title: "Usuários", url: "/users", icon: FolderKanban },
   { title: "Configurações", url: "/settings", icon: Settings },
