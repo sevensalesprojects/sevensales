@@ -18,30 +18,50 @@ const tabItems = [
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("system");
+  const isMobile = useIsMobile();
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Settings Sidebar */}
-      <div className="w-56 border-r border-border shrink-0 py-4">
-        <p className="px-4 text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Configurações</p>
-        <nav className="space-y-0.5 px-2">
-          {tabItems.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-                activeTab === tab.id ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              }`}
-            >
-              <tab.icon className="w-4 h-4 shrink-0" />
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+    <div className="flex flex-col md:flex-row h-full overflow-hidden">
+      {/* Settings Sidebar / Mobile tabs */}
+      {isMobile ? (
+        <div className="border-b border-border shrink-0 overflow-x-auto scrollbar-thin">
+          <div className="flex px-2 py-2 gap-1">
+            {tabItems.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                  activeTab === tab.id ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5 shrink-0" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="w-56 border-r border-border shrink-0 py-4">
+          <p className="px-4 text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Configurações</p>
+          <nav className="space-y-0.5 px-2">
+            {tabItems.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === tab.id ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`}
+              >
+                <tab.icon className="w-4 h-4 shrink-0" />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         {activeTab === "system" && <SystemSettings />}
         {activeTab === "experts" && <ExpertsSettings />}
         {activeTab === "funnels" && <FunnelsSettings />}
