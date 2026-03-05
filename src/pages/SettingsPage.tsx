@@ -74,7 +74,7 @@ function SystemSettings() {
                 <p className="text-xs text-muted-foreground">{item.value}</p>
               </div>
             </div>
-            <button className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
+            <button onClick={() => toast({ title: "Em breve", description: `Edição de "${item.label}" será disponibilizada em breve.` })} className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted transition-colors">
               Editar
             </button>
           </div>
