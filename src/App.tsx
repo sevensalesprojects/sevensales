@@ -7,6 +7,12 @@ import { ExpertProvider } from "@/contexts/ExpertContext";
 import { CRMSidebar, TopBar } from "@/components/CRMLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import FunnelsPage from "@/pages/FunnelsPage";
+import LeadsPage from "@/pages/LeadsPage";
+import ConversationsPage from "@/pages/ConversationsPage";
+import SDRsPage from "@/pages/SDRsPage";
+import IntegrationsPage from "@/pages/IntegrationsPage";
+import UsersPage from "@/pages/UsersPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +38,12 @@ const App = () => (
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/funnels" element={<FunnelsPage />} />
+              <Route path="/leads" element={<LeadsPage />} />
+              <Route path="/conversations" element={<ConversationsPage />} />
+              <Route path="/sdrs" element={<SDRsPage />} />
+              <Route path="/integrations" element={<IntegrationsPage />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </CRMLayout>
