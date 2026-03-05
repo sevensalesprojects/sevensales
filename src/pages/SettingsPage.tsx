@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
+import { toast } from "@/hooks/use-toast";
 import {
   Building2, Globe, Clock, Palette, Users, Kanban, Tags,
   Zap, Plus, Pencil, Trash2, GripVertical, Save, ChevronRight,
