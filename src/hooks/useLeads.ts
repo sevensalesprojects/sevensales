@@ -22,6 +22,21 @@ export interface DBLead {
   tags: string[];
   sdr_name?: string;
   closer_name?: string;
+  // New fields
+  country: string | null;
+  group_number: string | null;
+  group_link: string | null;
+  sale_status: string | null;
+  scheduling_date: string | null;
+  consultation_done: boolean;
+  reference_month: string | null;
+  call_recording_link: string | null;
+  observations: string | null;
+  scheduling_summary: string | null;
+  sdr_evaluation: string | null;
+  qualification_score: string | null;
+  sdr_observations: string | null;
+  google_calendar_event_id: string | null;
 }
 
 export interface CreateLeadData {
@@ -86,6 +101,7 @@ export function useLeads(funnelId?: string) {
 
     const result: DBLead[] = (data || []).map((l) => ({
       ...l,
+      consultation_done: l.consultation_done ?? false,
       tags: tagsMap[l.id] || [],
     }));
 
@@ -106,6 +122,20 @@ export function useLeads(funnelId?: string) {
     if (!error) {
       setLeads((prev) =>
         prev.map((l) => (l.id === leadId ? { ...l, stage_id: stageId } : l))
+      );
+    }
+    return !error;
+  };
+
+  const updateLeadField = async (leadId: string, field: string, value: any) => {
+    const { error } = await supabase
+      .from("leads")
+      .update({ [field]: value } as any)
+      .eq("id", leadId);
+
+    if (!error) {
+      setLeads((prev) =>
+        prev.map((l) => (l.id === leadId ? { ...l, [field]: value } : l))
       );
     }
     return !error;
@@ -150,5 +180,5 @@ export function useLeads(funnelId?: string) {
     return !error;
   };
 
-  return { leads, loading, refetch: fetchLeads, updateLeadStage, createLead, deleteLead };
+  return { leads, loading, refetch: fetchLeads, updateLeadStage, updateLeadField, createLead, deleteLead };
 }

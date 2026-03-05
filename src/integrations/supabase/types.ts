@@ -271,54 +271,96 @@ export type Database = {
       }
       leads: {
         Row: {
+          call_recording_link: string | null
           channel: string | null
           closer_id: string | null
+          consultation_done: boolean | null
+          country: string | null
           created_at: string
           email: string | null
           funnel_id: string | null
+          google_calendar_event_id: string | null
+          group_link: string | null
+          group_number: string | null
           id: string
           instagram: string | null
           name: string
+          observations: string | null
           phone: string | null
           project_id: string
+          qualification_score: string | null
+          reference_month: string | null
           response_time_minutes: number | null
+          sale_status: string | null
+          scheduling_date: string | null
+          scheduling_summary: string | null
+          sdr_evaluation: string | null
           sdr_id: string | null
+          sdr_observations: string | null
           source: string | null
           stage_id: string | null
           updated_at: string
           value_estimate: number | null
         }
         Insert: {
+          call_recording_link?: string | null
           channel?: string | null
           closer_id?: string | null
+          consultation_done?: boolean | null
+          country?: string | null
           created_at?: string
           email?: string | null
           funnel_id?: string | null
+          google_calendar_event_id?: string | null
+          group_link?: string | null
+          group_number?: string | null
           id?: string
           instagram?: string | null
           name: string
+          observations?: string | null
           phone?: string | null
           project_id: string
+          qualification_score?: string | null
+          reference_month?: string | null
           response_time_minutes?: number | null
+          sale_status?: string | null
+          scheduling_date?: string | null
+          scheduling_summary?: string | null
+          sdr_evaluation?: string | null
           sdr_id?: string | null
+          sdr_observations?: string | null
           source?: string | null
           stage_id?: string | null
           updated_at?: string
           value_estimate?: number | null
         }
         Update: {
+          call_recording_link?: string | null
           channel?: string | null
           closer_id?: string | null
+          consultation_done?: boolean | null
+          country?: string | null
           created_at?: string
           email?: string | null
           funnel_id?: string | null
+          google_calendar_event_id?: string | null
+          group_link?: string | null
+          group_number?: string | null
           id?: string
           instagram?: string | null
           name?: string
+          observations?: string | null
           phone?: string | null
           project_id?: string
+          qualification_score?: string | null
+          reference_month?: string | null
           response_time_minutes?: number | null
+          sale_status?: string | null
+          scheduling_date?: string | null
+          scheduling_summary?: string | null
+          sdr_evaluation?: string | null
           sdr_id?: string | null
+          sdr_observations?: string | null
           source?: string | null
           stage_id?: string | null
           updated_at?: string
