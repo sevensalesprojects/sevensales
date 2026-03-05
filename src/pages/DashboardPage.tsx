@@ -113,6 +113,7 @@ export default function DashboardPage() {
 
   const filterLeadsByRange = (rangeFrom: string, rangeTo: string) =>
     mockLeads.filter((l) => {
+      if (projectFilter !== "all" && l.expertId !== projectFilter) return false;
       if (sdrFilter !== "all" && l.sdr !== sdrFilter) return false;
       if (closerFilter !== "all" && l.closer !== closerFilter) return false;
       if (l.createdAt < rangeFrom || l.createdAt > rangeTo) return false;
