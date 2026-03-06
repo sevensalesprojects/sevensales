@@ -59,6 +59,7 @@ export default function LeadsPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+  const [showImport, setShowImport] = useState(false);
 
   const loading = funnelsLoading || leadsLoading;
   const stages = activeFunnel?.stages || [];
