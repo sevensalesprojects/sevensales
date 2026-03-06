@@ -1,67 +1,82 @@
-import { useState } from "react";
-import { useExpert } from "@/contexts/ExpertContext";
+import { useState, useEffect } from "react";
+import { useProject } from "@/contexts/ProjectContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   MessageCircle, Instagram, ShoppingBag, Wifi, WifiOff,
   Settings, RefreshCw, CheckCircle2, XCircle, QrCode,
-  ExternalLink, Plug,
+  ExternalLink, Plug, Loader2,
 } from "lucide-react";
 
 interface Integration {
   id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
-  status: "connected" | "disconnected" | "error";
-  details?: Record<string, string>;
+  type: string;
+  status: string;
+  config_json: any;
+  updated_at: string;
 }
 
-const integrations: Integration[] = [
-  {
-    id: "whatsapp", name: "WhatsApp", description: "Conexão via QR Code para envio e recebimento de mensagens",
-    icon: MessageCircle, iconColor: "text-success", iconBg: "bg-success/10",
-    status: "connected",
-    details: { "Número": "+55 11 99999-0001", "Projeto": "Expert Fábio", "SDR": "Carlos Mendes", "Último Sync": "Há 5 min" },
-  },
-  {
-    id: "instagram", name: "Instagram Direct", description: "Integração via Meta Graph API para receber e responder mensagens",
-    icon: Instagram, iconColor: "text-chart-5", iconBg: "bg-chart-5/10",
-    status: "disconnected",
-    details: { "Conta": "—", "Página Facebook": "—" },
-  },
-  {
-    id: "hotmart", name: "Hotmart", description: "Webhook para receber eventos de compra, cancelamento e reembolso",
-    icon: ShoppingBag, iconColor: "text-warning", iconBg: "bg-warning/10",
-    status: "connected",
-    details: { "Webhook URL": "https://api.vendaflow.com/wh/hotmart", "Eventos": "Compra, Cancelamento, Reembolso", "Último evento": "Há 2h" },
-  },
-];
+const typeConfig: Record<string, { name: string; description: string; icon: React.ElementType; iconColor: string; iconBg: string }> = {
+  whatsapp: { name: "WhatsApp", description: "Conexão via QR Code para envio e recebimento de mensagens", icon: MessageCircle, iconColor: "text-success", iconBg: "bg-success/10" },
+  instagram: { name: "Instagram Direct", description: "Integração via Meta Graph API para receber e responder mensagens", icon: Instagram, iconColor: "text-chart-5", iconBg: "bg-chart-5/10" },
+  hotmart: { name: "Hotmart", description: "Webhook para receber eventos de compra, cancelamento e reembolso", icon: ShoppingBag, iconColor: "text-warning", iconBg: "bg-warning/10" },
+};
 
 export default function IntegrationsPage() {
-  const { currentExpert } = useExpert();
+  const { currentProject } = useProject();
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [webhookEvents, setWebhookEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!currentProject) return;
+    const fetch = async () => {
+      setLoading(true);
+      const { data } = await supabase.from("integrations").select("*").eq("project_id", currentProject.id);
+      setIntegrations(data || []);
+
+      // Fetch recent webhook events
+      const intIds = (data || []).map(i => i.id);
+      if (intIds.length > 0) {
+        const { data: events } = await supabase.from("webhook_events").select("*").in("integration_id", intIds).order("created_at", { ascending: false }).limit(10);
+        setWebhookEvents(events || []);
+      }
+      setLoading(false);
+    };
+    fetch();
+  }, [currentProject?.id]);
+
+  // Show default types if not present in DB
+  const allTypes = ["whatsapp", "instagram", "hotmart"];
+  const displayIntegrations = allTypes.map(type => {
+    const dbInt = integrations.find(i => i.type === type);
+    const config = typeConfig[type] || { name: type, description: "", icon: Plug, iconColor: "text-muted-foreground", iconBg: "bg-muted" };
+    return {
+      id: dbInt?.id || type,
+      type,
+      status: dbInt?.status || "disconnected",
+      config_json: dbInt?.config_json || {},
+      updated_at: dbInt?.updated_at || "",
+      ...config,
+    };
+  });
+
+  if (loading) return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-base md:text-lg font-semibold text-foreground">Integrações</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">Conexões com plataformas externas</p>
-        </div>
+      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border shrink-0">
+        <h1 className="text-base md:text-lg font-semibold text-foreground">Integrações</h1>
+        <p className="text-xs md:text-sm text-muted-foreground">Conexões com plataformas externas</p>
       </div>
 
       <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4">
-        {integrations.map((int) => (
+        {displayIntegrations.map(int => (
           <div key={int.id} className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-start gap-3 md:gap-4">
-              {/* Icon */}
               <div className={`w-12 h-12 rounded-lg ${int.iconBg} flex items-center justify-center shrink-0`}>
                 <int.icon className={`w-6 h-6 ${int.iconColor}`} />
               </div>
-
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="text-sm font-semibold text-foreground">{int.name}</h3>
@@ -75,92 +90,45 @@ export default function IntegrationsPage() {
                      <><WifiOff className="w-3 h-3" /> Desconectado</>}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">{int.description}</p>
-
-                {/* Details */}
-                {int.details && (
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-                    {Object.entries(int.details).map(([key, val]) => (
-                      <div key={key}>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{key}</p>
-                        <p className="text-xs text-foreground">{val}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-xs text-muted-foreground">{int.description}</p>
+                {int.updated_at && <p className="text-[10px] text-muted-foreground mt-1">Último sync: {new Date(int.updated_at).toLocaleString("pt-BR")}</p>}
               </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <div className="flex items-center gap-2 shrink-0">
                 {int.status === "connected" ? (
                   <>
-                    <button onClick={() => toast({ title: "Teste OK", description: "Conexão verificada com sucesso." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
-                      <RefreshCw className="w-3.5 h-3.5" /> Testar
-                    </button>
-                    <button onClick={() => toast({ title: "Em breve", description: "Edição de integração será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
-                      <Settings className="w-3.5 h-3.5" /> Editar
-                    </button>
-                    <button onClick={() => toast({ title: "Em breve", description: "Desconexão de integração será disponibilizada em breve.", variant: "destructive" })} className="h-8 px-3 rounded-md border border-destructive/30 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1.5 transition-colors">
-                      <WifiOff className="w-3.5 h-3.5" /> Desconectar
-                    </button>
+                    <button onClick={() => toast({ title: "Teste OK", description: "Conexão verificada com sucesso." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors"><RefreshCw className="w-3.5 h-3.5" /> Testar</button>
+                    <button onClick={() => toast({ title: "Em breve", description: "Desconexão será disponibilizada em breve.", variant: "destructive" })} className="h-8 px-3 rounded-md border border-destructive/30 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1.5 transition-colors"><WifiOff className="w-3.5 h-3.5" /> Desconectar</button>
                   </>
                 ) : (
                   <button onClick={() => toast({ title: "Em breve", description: `Conexão com ${int.name} será disponibilizada em breve.` })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-                    {int.id === "whatsapp" ? <QrCode className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
-                    Conectar
+                    {int.type === "whatsapp" ? <QrCode className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />} Conectar
                   </button>
                 )}
               </div>
             </div>
-
-            {/* WhatsApp QR Code hint */}
-            {int.id === "whatsapp" && int.status === "disconnected" && (
-              <div className="px-5 py-4 bg-muted/30 border-t border-border flex items-center gap-3">
-                <QrCode className="w-8 h-8 text-muted-foreground" />
-                <div>
-                  <p className="text-xs font-medium text-foreground">Escaneie o QR Code</p>
-                  <p className="text-[10px] text-muted-foreground">Abra o WhatsApp no celular → Configurações → Aparelhos conectados → Conectar aparelho</p>
-                </div>
-              </div>
-            )}
-
-            {/* Instagram OAuth hint */}
-            {int.id === "instagram" && int.status === "disconnected" && (
-              <div className="px-5 py-4 bg-muted/30 border-t border-border flex items-center gap-3">
-                <ExternalLink className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs font-medium text-foreground">Autenticação via Meta</p>
-                  <p className="text-[10px] text-muted-foreground">Conecte sua conta Instagram Business via Facebook Business Manager e autorize o acesso ao Direct</p>
-                </div>
-              </div>
-            )}
           </div>
         ))}
 
         {/* Webhook Events */}
-        <div className="bg-card border border-border rounded-lg">
-          <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold text-foreground">Últimos Eventos de Webhook</h3>
-          </div>
-          <div className="divide-y divide-border">
-            {[
-              { event: "Compra aprovada", product: "Curso Expert Digital", lead: "Bruno Almeida", value: "R$ 2.497", time: "Há 2h", status: "success" },
-              { event: "Compra aprovada", product: "Mentoria VIP", lead: "Fernanda Dias", value: "R$ 12.000", time: "Há 6h", status: "success" },
-              { event: "Reembolso", product: "Curso Expert Digital", lead: "Carlos Pereira", value: "R$ 2.497", time: "Há 1d", status: "error" },
-            ].map((evt, i) => (
-              <div key={i} className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${evt.status === "success" ? "bg-success" : "bg-destructive"}`} />
-                  <div>
-                    <p className="text-sm text-foreground">{evt.event} — <span className="font-medium">{evt.product}</span></p>
-                    <p className="text-[10px] text-muted-foreground">{evt.lead} · {evt.time}</p>
+        {webhookEvents.length > 0 && (
+          <div className="bg-card border border-border rounded-lg">
+            <div className="px-4 py-3 border-b border-border"><h3 className="text-sm font-semibold text-foreground">Últimos Eventos de Webhook</h3></div>
+            <div className="divide-y divide-border">
+              {webhookEvents.map(evt => (
+                <div key={evt.id} className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${evt.processed ? "bg-success" : "bg-warning"}`} />
+                    <div>
+                      <p className="text-sm text-foreground">{evt.event_type}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(evt.created_at).toLocaleString("pt-BR")}</p>
+                    </div>
                   </div>
+                  <span className={`text-xs font-medium ${evt.processed ? "text-success" : "text-warning"}`}>{evt.processed ? "Processado" : "Pendente"}</span>
                 </div>
-                <span className={`text-sm font-semibold ${evt.status === "success" ? "text-success" : "text-destructive"}`}>{evt.value}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
