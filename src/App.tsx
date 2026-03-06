@@ -96,6 +96,7 @@ const App = () => (
                     <Route path="/closers" element={<ClosersPage />} />
                     <Route path="/ranking" element={<RankingPage />} />
                     <Route path="/onboarding" element={<OnboardingPage />} />
+                    <Route path="/agenda" element={<AgendaPage />} />
                     <Route path="/integrations" element={<IntegrationsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
