@@ -474,7 +474,7 @@ export function ImportLeadsDialog({ open, onOpenChange, onComplete }: ImportLead
                       <td className="px-2 py-1.5 text-muted-foreground">{lead.country}</td>
                       <td className="px-2 py-1.5 text-muted-foreground">{lead.source || "—"}</td>
                       <td className="px-2 py-1.5">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${lead.sale_status === "sold" ? "bg-green-500/15 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${lead.sale_status === "sold" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                           {lead.sale_status === "sold" ? "Sim" : "Não"}
                         </span>
                       </td>
