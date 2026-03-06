@@ -32,6 +32,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "react-router-dom";
+import { IntegrationStatusDots } from "@/components/IntegrationHealthBanner";
 
 import { CalendarDays } from "lucide-react";
 

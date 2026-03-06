@@ -19,6 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { IntegrationHealthBanner } from "@/components/IntegrationHealthBanner";
 
 const TODAY = "2026-03-05";
 const TODAY_DATE = new Date(TODAY + "T12:00:00");
