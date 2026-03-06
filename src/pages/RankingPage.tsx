@@ -5,8 +5,10 @@ import { Trophy, TrendingUp, MessageSquare, Calendar, Phone, DollarSign, Target,
 import { useProject } from "@/contexts/ProjectContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { subDays, startOfDay, endOfDay } from "date-fns";
+import { RankingTable } from "@/components/ranking/RankingTable";
+import { SectionCard } from "@/components/ranking/SectionCard";
+import { TopThreePodium } from "@/components/ranking/TopThreePodium";
 
 type Period = "today" | "7d" | "30d" | "90d";
 
@@ -22,8 +24,6 @@ function getPeriodRange(period: Period) {
   const start = period === "today" ? startOfDay(new Date()) : startOfDay(subDays(new Date(), parseInt(period)));
   return { start: start.toISOString(), end: end.toISOString() };
 }
-
-// --- Data hooks ---
 
 function useRankingData(projectId: string | undefined, period: Period) {
   const range = getPeriodRange(period);
@@ -61,7 +61,7 @@ function useRankingData(projectId: string | undefined, period: Period) {
   const profiles = useQuery({
     queryKey: ["ranking-profiles"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name");
+      const { data } = await supabase.from("profiles").select("user_id, full_name, avatar_url");
       return data || [];
     },
   });
@@ -81,6 +81,10 @@ function getUserName(profiles: { user_id: string; full_name: string }[], userId:
   return profiles.find(p => p.user_id === userId)?.full_name || "—";
 }
 
+function getAvatarUrl(profiles: { user_id: string; avatar_url?: string | null }[], userId: string) {
+  return profiles.find(p => p.user_id === userId)?.avatar_url || null;
+}
+
 function pct(a: number, b: number) {
   if (b === 0) return "0%";
   return `${((a / b) * 100).toFixed(1)}%`;
@@ -88,58 +92,6 @@ function pct(a: number, b: number) {
 
 function currency(v: number) {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-}
-
-// --- Ranking Tables ---
-
-function RankingTable({ columns, data }: { columns: { key: string; label: string; icon?: React.ReactNode }[]; data: Record<string, any>[] }) {
-  if (data.length === 0) {
-    return <div className="text-center py-12 text-muted-foreground text-sm">Sem dados para o período selecionado</div>;
-  }
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border">
-            {columns.map(col => (
-              <th key={col.key} className="text-left py-3 px-4 font-medium text-muted-foreground whitespace-nowrap">
-                <span className="flex items-center gap-1.5">{col.icon}{col.label}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => (
-            <tr key={i} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-              {columns.map(col => (
-                <td key={col.key} className="py-3 px-4 whitespace-nowrap">
-                  {col.key === "position" ? (
-                    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${i === 0 ? "bg-yellow-100 text-yellow-700" : i === 1 ? "bg-gray-100 text-gray-600" : i === 2 ? "bg-orange-100 text-orange-600" : "bg-muted text-muted-foreground"}`}>
-                      {i + 1}
-                    </span>
-                  ) : (
-                    <span className={i === 0 ? "font-semibold text-foreground" : "text-foreground"}>{row[col.key]}</span>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function SectionCard({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="bg-card border border-border rounded-lg">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
-        {icon}
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      </div>
-      <div className="p-0">{children}</div>
-    </div>
-  );
 }
 
 // --- SDR Tab ---
@@ -166,6 +118,7 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
       return {
         userId,
         name: getUserName(profiles, userId),
+        avatarUrl: getAvatarUrl(profiles, userId),
         callsRealizadas,
         callsAgendadas,
         vendas,
@@ -175,10 +128,12 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
         totalDisparos,
         retornos,
         agendamentos,
+        taxaRealizacao: pct(callsRealizadas, callsAgendadas),
         taxaConversao: pct(vendas, callsRealizadas),
         taxaResposta: pct(retornos, totalDisparos),
         taxaAgendamento: pct(agendamentos, retornos),
         taxaComparecimento: pct(callsRealizadas, callsAgendadas),
+        ticketMedio: vendas > 0 ? receita / vendas : 0,
       };
     }).sort((a, b) => b.callsRealizadas - a.callsRealizadas || b.vendas - a.vendas);
   }, [sdrUsers, leads, messages, profiles]);
@@ -187,23 +142,38 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
 
   return (
     <div className="space-y-6">
-      {/* Principal */}
-      <SectionCard title="Ranking Principal — Calls Realizadas & Vendas" icon={<Trophy className="w-4 h-4 text-yellow-500" />}>
+      {/* Podium Top 3 */}
+      <TopThreePodium
+        title="🏆 Top 3 SDRs — Calls Realizadas & Vendas"
+        entries={sdrStats.slice(0, 3).map(s => ({
+          name: s.name,
+          avatarUrl: s.avatarUrl,
+          mainValue: String(s.callsRealizadas),
+          mainLabel: "Calls Realizadas",
+          secondaryValue: String(s.vendas),
+          secondaryLabel: "vendas",
+        }))}
+      />
+
+      {/* Principal Table */}
+      <SectionCard title="Ranking Principal — Calls Agendadas → Realizadas → Vendas → Receita" icon={<Trophy className="w-4 h-4 text-yellow-500" />}>
         <RankingTable
           columns={[
             { key: "position", label: "#" },
             { key: "name", label: "SDR" },
+            { key: "callsAgendadas", label: "Calls Agendadas", icon: <Calendar className="w-3.5 h-3.5 text-purple-500" /> },
             { key: "callsRealizadas", label: "Calls Realizadas", icon: <Phone className="w-3.5 h-3.5 text-primary" /> },
+            { key: "taxaRealizacao", label: "% Realização" },
             { key: "vendas", label: "Vendas", icon: <DollarSign className="w-3.5 h-3.5 text-green-500" /> },
+            { key: "taxaConversao", label: "% Conversão" },
             { key: "receitaFmt", label: "Receita", icon: <TrendingUp className="w-3.5 h-3.5 text-primary" /> },
-            { key: "taxaConversao", label: "Conversão", icon: <Target className="w-3.5 h-3.5 text-orange-500" /> },
+            { key: "ticketMedioFmt", label: "Ticket Médio" },
           ]}
-          data={sdrStats.map(s => ({ ...s, receitaFmt: currency(s.receita) }))}
+          data={sdrStats.map(s => ({ ...s, receitaFmt: currency(s.receita), ticketMedioFmt: currency(s.ticketMedio) }))}
         />
       </SectionCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Disparos */}
         <SectionCard title="Volume de Disparos" icon={<MessageSquare className="w-4 h-4 text-blue-500" />}>
           <RankingTable
             columns={[
@@ -217,7 +187,6 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
           />
         </SectionCard>
 
-        {/* Retornos */}
         <SectionCard title="Retornos" icon={<TrendingUp className="w-4 h-4 text-green-500" />}>
           <RankingTable
             columns={[
@@ -231,7 +200,6 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
           />
         </SectionCard>
 
-        {/* Agendamentos */}
         <SectionCard title="Agendamentos" icon={<Calendar className="w-4 h-4 text-purple-500" />}>
           <RankingTable
             columns={[
@@ -245,7 +213,6 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
           />
         </SectionCard>
 
-        {/* Comparecimento */}
         <SectionCard title="Comparecimento" icon={<Phone className="w-4 h-4 text-red-500" />}>
           <RankingTable
             columns={[
@@ -281,6 +248,7 @@ function CloserRanking({ projectId, period }: { projectId: string | undefined; p
       return {
         userId,
         name: getUserName(profiles, userId),
+        avatarUrl: getAvatarUrl(profiles, userId),
         callsRealizadas,
         vendas,
         faturamento,
@@ -296,6 +264,19 @@ function CloserRanking({ projectId, period }: { projectId: string | undefined; p
 
   return (
     <div className="space-y-6">
+      {/* Podium Top 3 */}
+      <TopThreePodium
+        title="🏆 Top 3 Closers — Faturamento & Conversão"
+        entries={closerStats.slice(0, 3).map(s => ({
+          name: s.name,
+          avatarUrl: s.avatarUrl,
+          mainValue: s.faturamentoFmt,
+          mainLabel: "Faturamento",
+          secondaryValue: s.taxaConversao,
+          secondaryLabel: "conversão",
+        }))}
+      />
+
       {/* Principal */}
       <SectionCard title="Ranking Principal — Faturamento & Conversão" icon={<Trophy className="w-4 h-4 text-yellow-500" />}>
         <RankingTable
@@ -381,7 +362,6 @@ export default function RankingPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -402,7 +382,6 @@ export default function RankingPage() {
           </Select>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="sdr" className="w-full">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="sdr" className="flex-1 sm:flex-none">Ranking SDR</TabsTrigger>
