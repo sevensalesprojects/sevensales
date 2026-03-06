@@ -18,6 +18,7 @@ import RankingPage from "@/pages/RankingPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import AgendaPage from "@/pages/AgendaPage";
 import LoginPage from "@/pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -95,6 +96,7 @@ const App = () => (
                     <Route path="/closers" element={<ClosersPage />} />
                     <Route path="/ranking" element={<RankingPage />} />
                     <Route path="/onboarding" element={<OnboardingPage />} />
+                    <Route path="/agenda" element={<AgendaPage />} />
                     <Route path="/integrations" element={<IntegrationsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
