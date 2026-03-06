@@ -525,6 +525,12 @@ export default function LeadsPage() {
         destructive
       />
 
+      <ImportLeadsDialog
+        open={showImport}
+        onOpenChange={setShowImport}
+        onComplete={refetch}
+      />
+
       <ConfirmDialog
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
