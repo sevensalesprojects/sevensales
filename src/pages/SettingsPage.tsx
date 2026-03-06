@@ -3,11 +3,13 @@ import { useExpert } from "@/contexts/ExpertContext";
 import { useProject } from "@/contexts/ProjectContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFunnels } from "@/hooks/useFunnels";
+import { useFollowupFlows } from "@/hooks/useFollowupFlows";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   Building2, Globe, Clock, Users, Kanban, Tags as TagsIcon,
   Zap, Plus, Pencil, Trash2, GripVertical, ChevronRight, Save, X,
+  DollarSign, ArrowRight,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -18,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Loader2 } from "lucide-react";
 
-type SettingsTab = "system" | "experts" | "funnels" | "tags" | "automation";
+type SettingsTab = "system" | "experts" | "funnels" | "tags" | "automation" | "followup";
 
 const tabItems = [
   { id: "system" as const, label: "Sistema", icon: Building2 },
@@ -26,6 +28,7 @@ const tabItems = [
   { id: "funnels" as const, label: "Funis", icon: Kanban },
   { id: "tags" as const, label: "Tags", icon: TagsIcon },
   { id: "automation" as const, label: "Automações", icon: Zap },
+  { id: "followup" as const, label: "Follow-ups", icon: Clock },
 ];
 
 export default function SettingsPage() {
@@ -64,6 +67,7 @@ export default function SettingsPage() {
         {activeTab === "funnels" && <FunnelsSettings />}
         {activeTab === "tags" && <TagsSettings />}
         {activeTab === "automation" && <AutomationSettings />}
+        {activeTab === "followup" && <FollowupSettings />}
       </div>
     </div>
   );
@@ -71,16 +75,31 @@ export default function SettingsPage() {
 
 /* ─── System Settings ─── */
 function SystemSettings() {
+  const { currentProject, refetchProjects } = useProject();
   const [editField, setEditField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+
+  const projectName = currentProject?.name || "Seven Sales";
+  const projectTimezone = currentProject?.timezone || "America/Sao_Paulo";
+  const projectLanguage = currentProject?.language || "pt-BR";
+  const projectCurrency = (currentProject as any)?.currency_code || "BRL";
+
   const items = [
-    { key: "name", label: "Nome da Empresa", value: "Seven Sales", icon: Building2 },
-    { key: "timezone", label: "Fuso Horário", value: "América/São Paulo (BRT -3)", icon: Clock },
-    { key: "language", label: "Idioma", value: "Português (Brasil)", icon: Globe },
+    { key: "name", label: "Nome da Empresa", value: projectName, icon: Building2 },
+    { key: "timezone", label: "Fuso Horário", value: projectTimezone, icon: Clock },
+    { key: "language", label: "Idioma", value: projectLanguage, icon: Globe },
+    { key: "currency_code", label: "Moeda", value: projectCurrency, icon: DollarSign },
   ];
 
-  const handleSave = () => {
-    toast({ title: "Configuração salva", description: `"${editField}" atualizado.` });
+  const handleSave = async () => {
+    if (!currentProject || !editField) return;
+    const { error } = await supabase.from("projects").update({ [editField]: editValue } as any).eq("id", currentProject.id);
+    if (!error) {
+      toast({ title: "Configuração salva", description: `"${editField}" atualizado.` });
+      await refetchProjects();
+    } else {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
     setEditField(null);
   };
 
@@ -88,7 +107,7 @@ function SystemSettings() {
     <div className="max-w-2xl space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-1">Configurações do Sistema</h2>
-        <p className="text-sm text-muted-foreground">Configurações globais do CRM</p>
+        <p className="text-sm text-muted-foreground">Configurações globais do projeto</p>
       </div>
       <div className="bg-card border border-border rounded-lg divide-y divide-border">
         {items.map((item) => (
@@ -99,7 +118,17 @@ function SystemSettings() {
                 <p className="text-sm font-medium text-foreground">{item.label}</p>
                 {editField === item.key ? (
                   <div className="flex items-center gap-2 mt-1">
-                    <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-7 text-xs w-48" />
+                    {item.key === "currency_code" ? (
+                      <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
+                        className="h-7 text-xs rounded-md border border-input bg-background px-2">
+                        <option value="BRL">BRL (R$)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                      </select>
+                    ) : (
+                      <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-7 text-xs w-48" />
+                    )}
                     <button onClick={handleSave} className="text-primary hover:text-primary/80"><Save className="w-4 h-4" /></button>
                     <button onClick={() => setEditField(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
                   </div>
@@ -203,12 +232,7 @@ function FunnelsSettings() {
     const funnel = funnels.find(f => f.id === funnelId);
     const maxPos = funnel ? Math.max(0, ...funnel.stages.map(s => s.position)) + 1 : 0;
     const { error } = await supabase.from("funnel_stages").insert({ funnel_id: funnelId, name: newStageName, color: newStageColor, position: maxPos });
-    if (!error) {
-      toast({ title: "Etapa adicionada" });
-      await refetch();
-      setNewStageName("");
-      setShowAddStage(null);
-    }
+    if (!error) { toast({ title: "Etapa adicionada" }); await refetch(); setNewStageName(""); setShowAddStage(null); }
     setSaving(false);
   };
 
@@ -285,7 +309,6 @@ function FunnelsSettings() {
 
       {funnels.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum funil criado. Crie o primeiro acima.</p>}
 
-      {/* Edit Stage Dialog */}
       <Dialog open={!!editStage} onOpenChange={(open) => { if (!open) setEditStage(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Editar Etapa</DialogTitle></DialogHeader>
@@ -302,12 +325,10 @@ function FunnelsSettings() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Stage Confirm */}
       <ConfirmDialog open={!!deleteStage} onOpenChange={(open) => { if (!open) setDeleteStage(null); }}
         title="Excluir Etapa" description={`Excluir etapa "${deleteStage?.name}"? Leads nessa etapa ficarão sem etapa.`}
         onConfirm={handleDeleteStage} confirmLabel="Excluir" destructive />
 
-      {/* New Funnel Dialog */}
       <Dialog open={showNewFunnel} onOpenChange={setShowNewFunnel}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Novo Funil</DialogTitle></DialogHeader>
@@ -364,7 +385,6 @@ function TagsSettings() {
 
   const handleDelete = async () => {
     if (!deleteTag) return;
-    // Remove lead_tags first
     await supabase.from("lead_tags").delete().eq("tag_id", deleteTag.id);
     const { error } = await supabase.from("tags").delete().eq("id", deleteTag.id);
     if (!error) { toast({ title: "Tag excluída" }); await fetchTags(); }
@@ -405,7 +425,6 @@ function TagsSettings() {
         </>
       )}
 
-      {/* New Tag Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Nova Tag</DialogTitle></DialogHeader>
@@ -429,7 +448,6 @@ function TagsSettings() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Tag Dialog */}
       <Dialog open={!!editTag} onOpenChange={(open) => { if (!open) setEditTag(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Editar Tag</DialogTitle></DialogHeader>
@@ -455,7 +473,6 @@ function TagsSettings() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Tag Confirm */}
       <ConfirmDialog open={!!deleteTag} onOpenChange={(open) => { if (!open) setDeleteTag(null); }}
         title="Excluir Tag" description={`Excluir tag "${deleteTag?.name}"? Ela será removida de todos os leads.`}
         onConfirm={handleDelete} confirmLabel="Excluir" destructive />
@@ -488,7 +505,6 @@ function AutomationSettings() {
     }
   };
 
-  // Fallback to mock if empty
   const displayAutomations = automations.length > 0 ? automations : [
     { id: "mock1", name: "Mensagem de boas-vindas", trigger_type: "Lead criado", action_type: "Enviar WhatsApp", is_active: true },
     { id: "mock2", name: "Mover para Cliente", trigger_type: "Compra Hotmart", action_type: "Mover etapa", is_active: true },
@@ -538,6 +554,176 @@ function AutomationSettings() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ─── Follow-up Settings ─── */
+function FollowupSettings() {
+  const { flows, loading, createFlow, deleteFlow, toggleFlow, addMessage, deleteMessage } = useFollowupFlows();
+  const [showNew, setShowNew] = useState(false);
+  const [newFlowName, setNewFlowName] = useState("");
+  const [newFlowTrigger, setNewFlowTrigger] = useState("lead_no_response");
+  const [saving, setSaving] = useState(false);
+  const [expandedFlow, setExpandedFlow] = useState<string | null>(null);
+  const [newMsgText, setNewMsgText] = useState("");
+  const [newMsgDelay, setNewMsgDelay] = useState(24);
+  const [deleteFlowTarget, setDeleteFlowTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const triggerOptions = [
+    { value: "lead_no_response", label: "Lead não respondeu" },
+    { value: "call_no_show", label: "Lead não compareceu na call" },
+    { value: "call_no_purchase", label: "Lead na call mas não comprou" },
+    { value: "lead_more_info", label: "Lead pediu mais informações" },
+    { value: "lead_callback", label: "Lead pediu para retornar depois" },
+    { value: "lead_created", label: "Lead criado" },
+    { value: "first_message_sent", label: "Primeira mensagem enviada" },
+  ];
+
+  const handleCreate = async () => {
+    if (!newFlowName.trim()) return;
+    setSaving(true);
+    await createFlow(newFlowName, newFlowTrigger);
+    setSaving(false);
+    setNewFlowName("");
+    setNewFlowTrigger("lead_no_response");
+    setShowNew(false);
+    toast({ title: "Fluxo criado" });
+  };
+
+  const handleAddMsg = async (flowId: string) => {
+    if (!newMsgText.trim()) return;
+    setSaving(true);
+    const flow = flows.find(f => f.id === flowId);
+    const nextPos = flow ? flow.messages.length : 0;
+    await addMessage(flowId, newMsgText, newMsgDelay, nextPos);
+    setSaving(false);
+    setNewMsgText("");
+    setNewMsgDelay(24);
+    toast({ title: "Mensagem adicionada ao fluxo" });
+  };
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-1">Fluxos de Follow-up</h2>
+          <p className="text-sm text-muted-foreground">Crie sequências de mensagens para os SDRs enviarem manualmente</p>
+        </div>
+        <button onClick={() => setShowNew(true)} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+          <Plus className="w-3.5 h-3.5" /> Novo Fluxo
+        </button>
+      </div>
+
+      {loading ? <p className="text-sm text-muted-foreground">Carregando...</p> : (
+        <>
+          {flows.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum fluxo criado. Crie o primeiro acima.</p>}
+          {flows.map((flow) => (
+            <div key={flow.id} className="bg-card border border-border rounded-lg">
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => setExpandedFlow(expandedFlow === flow.id ? null : flow.id)}>
+                  <Clock className={`w-4 h-4 ${flow.is_active ? "text-primary" : "text-muted-foreground"}`} />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{flow.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                        Gatilho: {triggerOptions.find(t => t.value === flow.trigger_condition)?.label || flow.trigger_condition}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{flow.messages.length} mensagem(ns)</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => toggleFlow(flow.id, flow.is_active)}
+                    className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${flow.is_active ? "bg-primary" : "bg-muted"}`}>
+                    <div className={`w-4 h-4 rounded-full bg-card absolute top-0.5 transition-transform ${flow.is_active ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </button>
+                  <button onClick={() => setDeleteFlowTarget({ id: flow.id, name: flow.name })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10">
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </button>
+                </div>
+              </div>
+
+              {expandedFlow === flow.id && (
+                <div className="border-t border-border">
+                  {flow.messages.map((msg, i) => (
+                    <div key={msg.id} className="px-4 py-3 border-b border-border/50 flex items-start gap-3">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{i + 1}</div>
+                        {i < flow.messages.length - 1 && <div className="w-px h-4 bg-border" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground">{msg.message_text}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Enviar após {msg.delay_hours}h
+                        </p>
+                      </div>
+                      <button onClick={() => deleteMessage(msg.id)} className="w-6 h-6 rounded flex items-center justify-center hover:bg-destructive/10">
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add message */}
+                  <div className="px-4 py-3 space-y-2">
+                    <textarea
+                      value={newMsgText}
+                      onChange={(e) => setNewMsgText(e.target.value)}
+                      placeholder="Texto da mensagem de follow-up..."
+                      className="w-full text-sm bg-muted/30 border border-input rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-ring resize-none min-h-[60px] text-foreground placeholder:text-muted-foreground"
+                      rows={2}
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground">Delay:</label>
+                      <Input
+                        type="number"
+                        value={newMsgDelay}
+                        onChange={(e) => setNewMsgDelay(Number(e.target.value))}
+                        className="h-7 w-20 text-xs"
+                        min={1}
+                      />
+                      <span className="text-xs text-muted-foreground">horas</span>
+                      <div className="flex-1" />
+                      <Button size="sm" onClick={() => handleAddMsg(flow.id)} disabled={saving || !newMsgText.trim()}>
+                        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Plus className="w-3 h-3 mr-1" /> Adicionar</>}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* New Flow Dialog */}
+      <Dialog open={showNew} onOpenChange={setShowNew}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Novo Fluxo de Follow-up</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Nome do Fluxo</Label>
+              <Input value={newFlowName} onChange={(e) => setNewFlowName(e.target.value)} placeholder="Ex: Lead não respondeu" />
+            </div>
+            <div className="space-y-2">
+              <Label>Condição / Gatilho</Label>
+              <select value={newFlowTrigger} onChange={(e) => setNewFlowTrigger(e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                {triggerOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={saving || !newFlowName.trim()}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog open={!!deleteFlowTarget} onOpenChange={(open) => { if (!open) setDeleteFlowTarget(null); }}
+        title="Excluir Fluxo" description={`Excluir fluxo "${deleteFlowTarget?.name}" e todas as suas mensagens?`}
+        onConfirm={async () => { if (deleteFlowTarget) { await deleteFlow(deleteFlowTarget.id); setDeleteFlowTarget(null); toast({ title: "Fluxo excluído" }); } }}
+        confirmLabel="Excluir" destructive />
     </div>
   );
 }
