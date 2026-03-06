@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProjectProvider } from "@/contexts/ProjectContext";
-import { ExpertProvider } from "@/contexts/ExpertContext";
 import { CRMSidebar, TopBar, BottomNav } from "@/components/CRMLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import FunnelsPage from "@/pages/FunnelsPage";
@@ -42,16 +41,14 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ProjectProvider>
-      <ExpertProvider>
-        <div className="flex h-screen w-full overflow-hidden bg-background">
-          <CRMSidebar />
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <TopBar />
-            <main className="flex-1 overflow-hidden pb-14 md:pb-0">{children}</main>
-          </div>
-          <BottomNav />
+      <div className="flex h-screen w-full overflow-hidden bg-background">
+        <CRMSidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <TopBar />
+          <main className="flex-1 overflow-hidden pb-14 md:pb-0">{children}</main>
         </div>
-      </ExpertProvider>
+        <BottomNav />
+      </div>
     </ProjectProvider>
   );
 }
