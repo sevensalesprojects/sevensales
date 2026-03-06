@@ -2,11 +2,12 @@ import { DBLead } from "@/hooks/useLeads";
 import {
   X, Phone, Mail, Instagram, Globe, Users, Link2, CalendarDays,
   CheckCircle2, Video, FileText, MessageCircle, Star, Eye,
-  DollarSign, Clock, Send, Plus, ChevronDown, ExternalLink
+  DollarSign, Clock, Send, Plus, ChevronDown, ExternalLink, Tag, Trash2
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProject } from "@/contexts/ProjectContext";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -14,6 +15,7 @@ interface LeadDetailPanelProps {
   lead: DBLead;
   onClose: () => void;
   onFieldUpdate?: (leadId: string, field: string, value: any) => Promise<boolean>;
+  onLeadChanged?: () => void;
 }
 
 /* ─── Inline Editable Field ─── */
@@ -198,16 +200,23 @@ const qualificationOptions = [
 ];
 
 const sourceOptions = [
-  { value: "instagram_organico", label: "Instagram Orgânico" },
+  { value: "Instagram Orgânico", label: "Instagram Orgânico" },
   { value: "compra_hotmart", label: "Compra Hotmart" },
   { value: "forms_bio", label: "Forms Bio" },
   { value: "forms_lista_espera", label: "Forms Lista de Espera" },
   { value: "forms_youtube", label: "Forms YouTube" },
-  { value: "trafego_pago", label: "Tráfego Pago" },
-  { value: "youtube", label: "YouTube" },
-  { value: "indicacao", label: "Indicação" },
-  { value: "whatsapp", label: "WhatsApp" },
-  { value: "facebook_ads", label: "Facebook Ads" },
+  { value: "Tráfego Pago", label: "Tráfego Pago" },
+  { value: "YouTube", label: "YouTube" },
+  { value: "Indicação", label: "Indicação" },
+  { value: "WhatsApp", label: "WhatsApp" },
+  { value: "Facebook Ads", label: "Facebook Ads" },
+];
+
+const countryOptions = [
+  { value: "Brasil", label: "Brasil" },
+  { value: "Portugal", label: "Portugal" },
+  { value: "Estados Unidos", label: "Estados Unidos" },
+  { value: "Outro", label: "Outro" },
 ];
 
 const monthOptions = Array.from({ length: 12 }, (_, i) => {
@@ -219,13 +228,15 @@ const monthOptions = Array.from({ length: 12 }, (_, i) => {
 });
 
 /* ─── Main Panel ─── */
-export function LeadDetailPanel({ lead, onClose, onFieldUpdate }: LeadDetailPanelProps) {
+export function LeadDetailPanel({ lead, onClose, onFieldUpdate, onLeadChanged }: LeadDetailPanelProps) {
   const isMobile = useIsMobile();
   const [closers, setClosers] = useState<{ user_id: string; full_name: string }[]>([]);
   const [activeTab, setActiveTab] = useState<"ficha" | "conversa" | "notas" | "tarefas">("ficha");
+  const [localLead, setLocalLead] = useState<DBLead>(lead);
+
+  useEffect(() => { setLocalLead(lead); }, [lead]);
 
   useEffect(() => {
-    // Fetch closers for selection
     const fetchClosers = async () => {
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["closer"]);
       if (!roles || roles.length === 0) return;
@@ -238,11 +249,16 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate }: LeadDetailPane
 
   const saveField = useCallback(async (field: string, value: any) => {
     if (onFieldUpdate) {
-      const ok = await onFieldUpdate(lead.id, field, value);
-      if (ok) toast({ title: "Salvo", description: `${field} atualizado.` });
-      else toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
+      const ok = await onFieldUpdate(localLead.id, field, value);
+      if (ok) {
+        setLocalLead(prev => ({ ...prev, [field]: value }));
+        toast({ title: "Salvo", description: `Campo atualizado.` });
+        onLeadChanged?.();
+      } else {
+        toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
+      }
     }
-  }, [lead.id, onFieldUpdate]);
+  }, [localLead.id, onFieldUpdate, onLeadChanged]);
 
   const tabs = [
     { id: "ficha" as const, label: "Ficha", icon: FileText },
@@ -252,8 +268,6 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate }: LeadDetailPane
   ];
 
   const closerOptions = closers.map((c) => ({ value: c.user_id, label: c.full_name }));
-  // Default closer (Micharlison)
-  const defaultCloser = closers.find((c) => c.full_name.toLowerCase().includes("micharlison"));
 
   return (
     <>
@@ -264,8 +278,8 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate }: LeadDetailPane
         {/* Header */}
         <div className="h-14 px-4 md:px-5 flex items-center justify-between border-b border-border shrink-0">
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-card-foreground truncate">{lead.name}</h2>
-            <p className="text-xs text-muted-foreground truncate">{lead.source ? sourceOptions.find(s => s.value === lead.source)?.label || lead.source : "Sem origem"}</p>
+            <h2 className="text-sm font-semibold text-card-foreground truncate">{localLead.name}</h2>
+            <p className="text-xs text-muted-foreground truncate">{localLead.source || "Sem origem"}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted transition-colors shrink-0 ml-2">
             <X className="w-4 h-4 text-muted-foreground" />
@@ -288,11 +302,11 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate }: LeadDetailPane
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 scrollbar-thin">
           {activeTab === "ficha" && (
-            <LeadFichaTab lead={lead} saveField={saveField} closerOptions={closerOptions} defaultCloserId={defaultCloser?.user_id} />
+            <LeadFichaTab lead={localLead} saveField={saveField} closerOptions={closerOptions} />
           )}
-          {activeTab === "conversa" && <ConversationTab leadId={lead.id} />}
-          {activeTab === "notas" && <NotesTab leadId={lead.id} />}
-          {activeTab === "tarefas" && <TasksTab leadId={lead.id} />}
+          {activeTab === "conversa" && <ConversationTab leadId={localLead.id} />}
+          {activeTab === "notas" && <NotesTab leadId={localLead.id} />}
+          {activeTab === "tarefas" && <TasksTab leadId={localLead.id} />}
         </div>
       </div>
     </>
@@ -306,12 +320,10 @@ function LeadFichaTab({
   lead,
   saveField,
   closerOptions,
-  defaultCloserId,
 }: {
   lead: DBLead;
   saveField: (field: string, value: any) => void;
   closerOptions: { value: string; label: string }[];
-  defaultCloserId?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -321,8 +333,19 @@ function LeadFichaTab({
           <InlineField label="Nome" value={lead.name} onSave={(v) => saveField("name", v)} icon={Users} placeholder="Nome do cliente" />
           <InlineField label="Telefone / WhatsApp" value={lead.phone} onSave={(v) => saveField("phone", v)} icon={Phone} placeholder="+55 11 99999-9999" />
           <InlineField label="Email" value={lead.email} onSave={(v) => saveField("email", v)} icon={Mail} placeholder="email@exemplo.com" />
-          <InlineField label="Instagram" value={lead.instagram} onSave={(v) => saveField("instagram", v)} icon={Instagram} placeholder="@usuario" />
-          <InlineField label="País" value={lead.country} onSave={(v) => saveField("country", v)} icon={Globe} placeholder="Brasil" />
+          <InlineField label="Instagram" value={lead.instagram} onSave={(v) => {
+            const cleaned = v ? v.replace(/^@/, "") : null;
+            saveField("instagram", cleaned ? `@${cleaned}` : null);
+          }} icon={Instagram} placeholder="@usuario" />
+          <InlineField
+            label="País"
+            value={lead.country}
+            onSave={(v) => saveField("country", v)}
+            icon={Globe}
+            type="select"
+            options={countryOptions}
+            placeholder="Selecionar país..."
+          />
         </div>
       </BlockSection>
 
@@ -355,9 +378,6 @@ function LeadFichaTab({
           type="date"
           icon={CalendarDays}
         />
-        <p className="text-[10px] text-muted-foreground italic">
-          PADRAO NOMENCLATURA 007 - ALTERAR · Integração Google Agenda será configurada em breve.
-        </p>
       </BlockSection>
 
       {/* 5 — Comparecimento */}
@@ -375,7 +395,7 @@ function LeadFichaTab({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <InlineField
             label="Closer Responsável"
-            value={lead.closer_id || defaultCloserId || null}
+            value={lead.closer_id || null}
             onSave={(v) => saveField("closer_id", v)}
             type="select"
             options={closerOptions}
@@ -426,14 +446,14 @@ function LeadFichaTab({
           label="Resumo do Agendamento (IA)"
           value={lead.scheduling_summary}
           onSave={(v) => saveField("scheduling_summary", v)}
-          placeholder="O resumo será gerado automaticamente pela IA quando a conversa for marcada como agendada..."
+          placeholder="O resumo será gerado automaticamente pela IA..."
           multiline
         />
         <InlineField
           label="Avaliação do SDR (IA)"
           value={lead.sdr_evaluation}
           onSave={(v) => saveField("sdr_evaluation", v)}
-          placeholder="A avaliação será gerada automaticamente com base no SCRIPT UNIVERSAL SDR 1.0..."
+          placeholder="A avaliação será gerada automaticamente..."
           multiline
         />
         <InlineField
@@ -462,14 +482,100 @@ function LeadFichaTab({
       </BlockSection>
 
       {/* Tags */}
-      <BlockSection title="Tags" icon={FileText}>
-        <div className="flex flex-wrap gap-1">
-          {lead.tags.length > 0 ? lead.tags.map((tag) => (
-            <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{tag}</span>
-          )) : <span className="text-xs text-muted-foreground italic">Nenhuma tag</span>}
-        </div>
-      </BlockSection>
+      <TagsSection leadId={lead.id} tags={lead.tags} />
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════ */
+/* ─── TAGS SECTION ─── */
+/* ═══════════════════════════════════════════ */
+function TagsSection({ leadId, tags }: { leadId: string; tags: string[] }) {
+  const { currentProject } = useProject();
+  const [allTags, setAllTags] = useState<{ id: string; name: string; color: string | null }[]>([]);
+  const [leadTagIds, setLeadTagIds] = useState<{ tag_id: string; id: string }[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [localTags, setLocalTags] = useState<string[]>(tags);
+
+  useEffect(() => { setLocalTags(tags); }, [tags]);
+
+  useEffect(() => {
+    if (!currentProject) return;
+    const fetchTags = async () => {
+      const { data: projectTags } = await supabase.from("tags").select("id, name, color").eq("project_id", currentProject.id);
+      if (projectTags) setAllTags(projectTags);
+
+      const { data: lt } = await supabase.from("lead_tags").select("id, tag_id").eq("lead_id", leadId);
+      if (lt) setLeadTagIds(lt);
+    };
+    fetchTags();
+  }, [leadId, currentProject]);
+
+  const assignedTagIds = leadTagIds.map(lt => lt.tag_id);
+  const availableTags = allTags.filter(t => !assignedTagIds.includes(t.id));
+
+  const addTag = async (tagId: string) => {
+    const { data, error } = await supabase.from("lead_tags").insert({ lead_id: leadId, tag_id: tagId }).select().single();
+    if (!error && data) {
+      setLeadTagIds(prev => [...prev, { tag_id: tagId, id: data.id }]);
+      const tagName = allTags.find(t => t.id === tagId)?.name;
+      if (tagName) setLocalTags(prev => [...prev, tagName]);
+      toast({ title: "Tag adicionada" });
+    }
+    setShowAdd(false);
+  };
+
+  const removeTag = async (tagId: string) => {
+    const ltEntry = leadTagIds.find(lt => lt.tag_id === tagId);
+    if (!ltEntry) return;
+    const { error } = await supabase.from("lead_tags").delete().eq("id", ltEntry.id);
+    if (!error) {
+      setLeadTagIds(prev => prev.filter(lt => lt.tag_id !== tagId));
+      const tagName = allTags.find(t => t.id === tagId)?.name;
+      if (tagName) setLocalTags(prev => prev.filter(t => t !== tagName));
+      toast({ title: "Tag removida" });
+    }
+  };
+
+  return (
+    <BlockSection title="Tags" icon={Tag}>
+      <div className="flex flex-wrap gap-1.5">
+        {assignedTagIds.map(tagId => {
+          const tag = allTags.find(t => t.id === tagId);
+          if (!tag) return null;
+          return (
+            <span key={tagId} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1 group">
+              {tag.name}
+              <button onClick={() => removeTag(tagId)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <X className="w-3 h-3 text-destructive" />
+              </button>
+            </span>
+          );
+        })}
+        {localTags.filter(t => !allTags.some(at => at.name === t && assignedTagIds.includes(at.id))).map(tag => (
+          <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{tag}</span>
+        ))}
+        {availableTags.length > 0 && (
+          <div className="relative">
+            <button onClick={() => setShowAdd(!showAdd)} className="text-xs px-2 py-0.5 rounded-full border border-dashed border-muted-foreground text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center gap-1">
+              <Plus className="w-3 h-3" /> Tag
+            </button>
+            {showAdd && (
+              <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[150px] max-h-[200px] overflow-y-auto">
+                {availableTags.map(tag => (
+                  <button key={tag.id} onClick={() => addTag(tag.id)} className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-muted transition-colors">
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {localTags.length === 0 && assignedTagIds.length === 0 && availableTags.length === 0 && (
+          <span className="text-xs text-muted-foreground italic">Nenhuma tag disponível</span>
+        )}
+      </div>
+    </BlockSection>
   );
 }
 
@@ -477,32 +583,69 @@ function LeadFichaTab({
 /* ─── CONVERSATION TAB ─── */
 /* ═══════════════════════════════════════════ */
 function ConversationTab({ leadId }: { leadId: string }) {
-  const [messages, setMessages] = useState<{ id: string; text: string; from: string; time: string }[]>([]);
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<{ id: string; content: string; direction: string; created_at: string; channel: string }[]>([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    setMessages(prev => [...prev, {
-      id: `local-${Date.now()}`,
-      text: input,
-      from: "sdr",
-      time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-    }]);
-    setInput("");
-    toast({ title: "Mensagem registrada" });
+  useEffect(() => {
+    const fetchMessages = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("messages")
+        .select("id, content, direction, created_at, channel")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: true });
+      if (data) setMessages(data);
+      setLoading(false);
+    };
+    fetchMessages();
+  }, [leadId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || !user) return;
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        lead_id: leadId,
+        content: input,
+        direction: "outbound",
+        channel: "whatsapp",
+        sender_id: user.id,
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      setMessages(prev => [...prev, data]);
+      setInput("");
+      toast({ title: "Mensagem registrada" });
+    } else {
+      toast({ title: "Erro", description: "Não foi possível enviar.", variant: "destructive" });
+    }
   };
+
+  if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando mensagens...</p>;
 
   return (
     <div className="space-y-3">
       {messages.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhuma conversa registrada.</p>}
       {messages.map((msg) => (
-        <div key={msg.id} className={`flex gap-2 ${msg.from === "sdr" ? "justify-end" : ""}`}>
-          <div className={`rounded-lg px-3 py-2 max-w-[85%] ${msg.from === "sdr" ? "bg-primary/10 rounded-tr-none" : "bg-muted rounded-tl-none"}`}>
-            <p className="text-sm text-foreground">{msg.text}</p>
-            <span className="text-[10px] text-muted-foreground mt-1 block">{msg.time}</span>
+        <div key={msg.id} className={`flex gap-2 ${msg.direction === "outbound" ? "justify-end" : ""}`}>
+          <div className={`rounded-lg px-3 py-2 max-w-[85%] ${msg.direction === "outbound" ? "bg-primary/10 rounded-tr-none" : "bg-muted rounded-tl-none"}`}>
+            <p className="text-sm text-foreground">{msg.content}</p>
+            <span className="text-[10px] text-muted-foreground mt-1 block">
+              {new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
           </div>
         </div>
       ))}
+      <div ref={messagesEndRef} />
       <div className="mt-6 flex items-center gap-2 border border-input rounded-lg p-2">
         <input type="text" placeholder="Digite sua mensagem..." value={input} onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
@@ -523,6 +666,21 @@ function NotesTab({ leadId }: { leadId: string }) {
   const [notes, setNotes] = useState<{ id: string; content: string; created_at: string }[]>([]);
   const [noteInput, setNoteInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotes = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("lead_notes")
+        .select("id, content, created_at")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false });
+      if (data) setNotes(data);
+      setLoading(false);
+    };
+    fetchNotes();
+  }, [leadId]);
 
   const handleSave = async () => {
     if (!noteInput.trim() || !user) return;
@@ -542,6 +700,8 @@ function NotesTab({ leadId }: { leadId: string }) {
     }
     setSaving(false);
   };
+
+  if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando notas...</p>;
 
   return (
     <div className="space-y-3">
@@ -571,6 +731,21 @@ function TasksTab({ leadId }: { leadId: string }) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<{ id: string; title: string; status: string }[]>([]);
   const [taskInput, setTaskInput] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, title, status")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false });
+      if (data) setTasks(data);
+      setLoading(false);
+    };
+    fetchTasks();
+  }, [leadId]);
 
   const handleAdd = async () => {
     if (!taskInput.trim() || !user) return;
@@ -581,7 +756,7 @@ function TasksTab({ leadId }: { leadId: string }) {
       .single();
 
     if (!error && data) {
-      setTasks(prev => [...prev, data]);
+      setTasks(prev => [data, ...prev]);
       setTaskInput("");
       toast({ title: "Tarefa criada" });
     }
@@ -594,6 +769,8 @@ function TasksTab({ leadId }: { leadId: string }) {
     await supabase.from("tasks").update({ status: newStatus }).eq("id", taskId);
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
   };
+
+  if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando tarefas...</p>;
 
   return (
     <div className="space-y-2">

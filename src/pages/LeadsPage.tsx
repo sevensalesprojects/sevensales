@@ -247,7 +247,18 @@ export default function LeadsPage() {
         )}
       </div>
 
-      {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} onFieldUpdate={updateLeadField} />}
+      {selectedLead && (
+        <LeadDetailPanel
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onFieldUpdate={updateLeadField}
+          onLeadChanged={() => {
+            // Update the selected lead with fresh data from state
+            const updated = leads.find(l => l.id === selectedLead.id);
+            if (updated) setSelectedLead(updated);
+          }}
+        />
+      )}
 
       <CreateLeadDialog
         open={showCreateLead}
