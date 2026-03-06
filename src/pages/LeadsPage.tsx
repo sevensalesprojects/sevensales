@@ -8,6 +8,7 @@ import { CreateLeadDialog } from "@/components/CreateLeadDialog";
 import { EditLeadDialog } from "@/components/EditLeadDialog";
 import { TransferLeadDialog } from "@/components/TransferLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ImportLeadsDialog } from "@/components/ImportLeadsDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent, saveDeletedRecord } from "@/hooks/useSystemLog";
@@ -58,6 +59,7 @@ export default function LeadsPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+  const [showImport, setShowImport] = useState(false);
 
   const loading = funnelsLoading || leadsLoading;
   const stages = activeFunnel?.stages || [];
@@ -265,7 +267,7 @@ export default function LeadsPage() {
           )}
           {!isMobile && (
             <>
-              <button onClick={() => toast({ title: "Em breve", description: "Importação CSV será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+              <button onClick={() => setShowImport(true)} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
                 <Upload className="w-3.5 h-3.5" /> Importar
               </button>
               <button onClick={handleExport} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
@@ -521,6 +523,12 @@ export default function LeadsPage() {
         onConfirm={handleDelete}
         confirmLabel="Excluir"
         destructive
+      />
+
+      <ImportLeadsDialog
+        open={showImport}
+        onOpenChange={setShowImport}
+        onComplete={refetch}
       />
 
       <ConfirmDialog
