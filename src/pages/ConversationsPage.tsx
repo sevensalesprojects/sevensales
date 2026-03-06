@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProject } from "@/contexts/ProjectContext";

@@ -33,11 +33,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "react-router-dom";
 
+import { CalendarDays } from "lucide-react";
+
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
   { title: "Conversas", url: "/conversations", icon: MessageSquare },
   { title: "Funis", url: "/funnels", icon: Kanban },
+  { title: "Agenda", url: "/agenda", icon: CalendarDays },
   { title: "SDRs", url: "/sdrs", icon: UserCog },
   { title: "Closers", url: "/closers", icon: Handshake },
   { title: "Ranking", url: "/ranking", icon: Trophy },
