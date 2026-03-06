@@ -18,6 +18,8 @@ import {
   ClipboardList,
   Trophy,
 } from "lucide-react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
