@@ -483,6 +483,9 @@ function LeadFichaTab({
 
       {/* Tags */}
       <TagsSection leadId={lead.id} tags={lead.tags} />
+
+      {/* Follow-up */}
+      <FollowupSection leadId={lead.id} />
     </div>
   );
 }
