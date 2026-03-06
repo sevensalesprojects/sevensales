@@ -267,7 +267,7 @@ export default function LeadsPage() {
           )}
           {!isMobile && (
             <>
-              <button onClick={() => toast({ title: "Em breve", description: "Importação CSV será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
+              <button onClick={() => setShowImport(true)} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
                 <Upload className="w-3.5 h-3.5" /> Importar
               </button>
               <button onClick={handleExport} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
