@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ClipboardList,
+  Trophy,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
