@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useExpert } from "@/contexts/ExpertContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Search, Phone, Mail, Instagram, MessageCircle, Send,
-  Paperclip, Smile, Mic, Image, UserCog, CheckCheck,
-  ArrowLeftRight, XCircle, ArrowLeft,
+  Paperclip, Image, UserCog, CheckCheck,
+  ArrowLeftRight, XCircle, ArrowLeft, ClipboardList,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 interface Conversation {
   id: string;
@@ -49,6 +60,7 @@ const initialMessages: Record<string, Message[]> = {
 
 export default function ConversationsPage() {
   const { currentExpert } = useExpert();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(isMobile ? null : conversations[0]);
@@ -56,8 +68,28 @@ export default function ConversationsPage() {
   const [filterChannel, setFilterChannel] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>(initialMessages);
+  const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
+
+  // Transfer dialog
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferSdrId, setTransferSdrId] = useState("");
+
+  // Create task dialog
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
 
   const messages = selectedConversation ? (messagesMap[selectedConversation.id] || []) : [];
+
+  // Fetch SDRs
+  useEffect(() => {
+    const fetchSdrs = async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "sdr");
+      if (!roles || roles.length === 0) return;
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", roles.map(r => r.user_id));
+      if (profiles) setSdrs(profiles);
+    };
+    fetchSdrs();
+  }, []);
 
   const filteredConversations = conversations.filter((c) => {
     const matchSearch = !searchQuery || c.leadName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -97,12 +129,33 @@ export default function ConversationsPage() {
     toast({ title: selectedConversation.status === "active" ? "Conversa resolvida" : "Conversa reaberta" });
   };
 
-  const handleTransfer = () => {
-    toast({ title: "Em breve", description: "Transferência de conversa será disponibilizada quando a equipe estiver cadastrada no sistema." });
+  const handleTransferConfirm = () => {
+    if (!transferSdrId || !selectedConversation) return;
+    const sdrName = sdrs.find(s => s.user_id === transferSdrId)?.full_name || "SDR";
+    setConversations(prev => prev.map(c =>
+      c.id === selectedConversation.id ? { ...c, sdr: sdrName } : c
+    ));
+    setSelectedConversation(prev => prev ? ({ ...prev, sdr: sdrName }) : null);
+    toast({ title: "Conversa transferida", description: `Transferida para ${sdrName}` });
+    setShowTransfer(false);
+    setTransferSdrId("");
   };
 
-  const handleAssign = () => {
-    toast({ title: "Em breve", description: "Atribuição de SDR será disponibilizada quando a equipe estiver cadastrada." });
+  const handleCreateTaskConfirm = async () => {
+    if (!taskTitle.trim() || !user) return;
+    const { error } = await supabase.from("tasks").insert({
+      title: taskTitle,
+      user_id: user.id,
+      status: "pending",
+      type: "follow_up",
+    });
+    if (!error) {
+      toast({ title: "Tarefa criada", description: taskTitle });
+    } else {
+      toast({ title: "Erro ao criar tarefa", variant: "destructive" });
+    }
+    setShowCreateTask(false);
+    setTaskTitle("");
   };
 
   const handleClose = () => {
@@ -114,7 +167,6 @@ export default function ConversationsPage() {
     toast({ title: "Conversa encerrada", description: `Conversa com ${selectedConversation.leadName} foi encerrada.` });
   };
 
-  // Mobile: show list or chat
   const showList = !isMobile || !selectedConversation;
   const showChat = !isMobile || !!selectedConversation;
 
@@ -193,14 +245,14 @@ export default function ConversationsPage() {
             </div>
             <div className="flex items-center gap-0.5 md:gap-1 shrink-0">
               {!isMobile && (
-                <button onClick={handleAssign} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted transition-colors" title="Assumir conversa">
-                  <UserCog className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-              {!isMobile && (
-                <button onClick={handleTransfer} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted transition-colors" title="Transferir">
-                  <ArrowLeftRight className="w-4 h-4 text-muted-foreground" />
-                </button>
+                <>
+                  <button onClick={() => setShowTransfer(true)} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted transition-colors" title="Transferir conversa">
+                    <ArrowLeftRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                  <button onClick={() => setShowCreateTask(true)} className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted transition-colors" title="Criar tarefa">
+                    <ClipboardList className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </>
               )}
               <button onClick={markResolved} className={`w-8 h-8 rounded-md flex items-center justify-center hover:bg-muted transition-colors ${selectedConversation.status === "resolved" ? "bg-success/10" : ""}`} title="Marcar resolvido">
                 <CheckCheck className={`w-4 h-4 ${selectedConversation.status === "resolved" ? "text-success" : "text-muted-foreground"}`} />
@@ -274,8 +326,8 @@ export default function ConversationsPage() {
           </div>
           <div className="p-4 border-t border-border space-y-1.5">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Ações Rápidas</p>
-            <button onClick={handleAssign} className="w-full h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"><UserCog className="w-3.5 h-3.5" /> Atribuir SDR</button>
-            <button onClick={handleTransfer} className="w-full h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"><ArrowLeftRight className="w-3.5 h-3.5" /> Transferir Conversa</button>
+            <button onClick={() => setShowTransfer(true)} className="w-full h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"><ArrowLeftRight className="w-3.5 h-3.5" /> Transferir Conversa</button>
+            <button onClick={() => setShowCreateTask(true)} className="w-full h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"><ClipboardList className="w-3.5 h-3.5" /> Criar Tarefa</button>
             <button onClick={markResolved} className="w-full h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"><CheckCheck className="w-3.5 h-3.5" /> {selectedConversation.status === "active" ? "Marcar como Resolvido" : "Reabrir Conversa"}</button>
           </div>
           <div className="p-4 border-t border-border space-y-2">
@@ -285,6 +337,48 @@ export default function ConversationsPage() {
           </div>
         </div>
       )}
+
+      {/* Transfer Dialog */}
+      <Dialog open={showTransfer} onOpenChange={setShowTransfer}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Transferir Conversa</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Transferir conversa de <span className="font-medium text-foreground">{selectedConversation?.leadName}</span> para outro SDR.</p>
+            <div className="space-y-2">
+              <Label>Novo SDR</Label>
+              <Select value={transferSdrId} onValueChange={setTransferSdrId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar SDR" /></SelectTrigger>
+                <SelectContent>
+                  {sdrs.map((s) => <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {sdrs.length === 0 && <p className="text-xs text-muted-foreground">Nenhum SDR cadastrado no sistema.</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTransfer(false)}>Cancelar</Button>
+            <Button onClick={handleTransferConfirm} disabled={!transferSdrId}>Transferir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Task Dialog */}
+      <Dialog open={showCreateTask} onOpenChange={setShowCreateTask}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Criar Tarefa</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Criar tarefa relacionada à conversa com <span className="font-medium text-foreground">{selectedConversation?.leadName}</span>.</p>
+            <div className="space-y-2">
+              <Label>Título da Tarefa</Label>
+              <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="Ex: Enviar proposta" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateTask(false)}>Cancelar</Button>
+            <Button onClick={handleCreateTaskConfirm} disabled={!taskTitle.trim()}>Criar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
