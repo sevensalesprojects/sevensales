@@ -101,14 +101,6 @@ export default function LeadsPage() {
               <SelectContent>{funnels.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
             </Select>
           )}
-          <div className="flex items-center border border-input rounded-md overflow-hidden">
-            <button onClick={() => setViewMode("kanban")} className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={() => setViewMode("list")} className={`h-8 w-8 flex items-center justify-center transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
-              <List className="w-3.5 h-3.5" />
-            </button>
-          </div>
           {!isMobile && (
             <>
               <button onClick={() => toast({ title: "Em breve", description: "Importação CSV será disponibilizada em breve." })} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
