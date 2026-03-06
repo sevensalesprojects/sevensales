@@ -8,6 +8,7 @@ import { CreateLeadDialog } from "@/components/CreateLeadDialog";
 import { EditLeadDialog } from "@/components/EditLeadDialog";
 import { TransferLeadDialog } from "@/components/TransferLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ImportLeadsDialog } from "@/components/ImportLeadsDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent, saveDeletedRecord } from "@/hooks/useSystemLog";
