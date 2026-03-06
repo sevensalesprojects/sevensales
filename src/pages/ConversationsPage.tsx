@@ -117,7 +117,7 @@ export default function ConversationsPage() {
           sdrName: lead.sdr_id ? (profileMap[lead.sdr_id] || "SDR") : "—",
           phone: lead.phone || "",
           email: lead.email || "",
-          status: "active",
+          status: "active" as const,
         };
       }).sort((a, b) => b.time.localeCompare(a.time));
 
