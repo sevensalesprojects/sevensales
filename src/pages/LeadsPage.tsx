@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 
-type ViewMode = "kanban" | "list";
+
 
 const tagColors: Record<string, string> = {
   quente: "bg-destructive/15 text-destructive",
