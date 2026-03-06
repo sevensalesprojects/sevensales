@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardList,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
@@ -36,6 +37,7 @@ const navItems = [
   { title: "Funis", url: "/funnels", icon: Kanban },
   { title: "SDRs", url: "/sdrs", icon: UserCog },
   { title: "Closers", url: "/closers", icon: Handshake },
+  { title: "Onboarding", url: "/onboarding", icon: ClipboardList },
   { title: "Integrações", url: "/integrations", icon: Plug },
   { title: "Usuários", url: "/users", icon: FolderKanban },
   { title: "Configurações", url: "/settings", icon: Settings },

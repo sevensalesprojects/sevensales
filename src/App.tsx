@@ -13,6 +13,7 @@ import LeadsPage from "@/pages/LeadsPage";
 import ConversationsPage from "@/pages/ConversationsPage";
 import SDRsPage from "@/pages/SDRsPage";
 import ClosersPage from "@/pages/ClosersPage";
+import OnboardingPage from "@/pages/OnboardingPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -91,6 +92,7 @@ const App = () => (
                     <Route path="/conversations" element={<ConversationsPage />} />
                     <Route path="/sdrs" element={<SDRsPage />} />
                     <Route path="/closers" element={<ClosersPage />} />
+                    <Route path="/onboarding" element={<OnboardingPage />} />
                     <Route path="/integrations" element={<IntegrationsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
