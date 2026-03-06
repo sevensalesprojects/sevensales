@@ -254,6 +254,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 overflow-y-auto h-full scrollbar-thin">
+      <IntegrationHealthBanner />
       {/* Header with filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
