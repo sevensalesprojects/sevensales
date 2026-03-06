@@ -19,6 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { IntegrationHealthBanner } from "@/components/IntegrationHealthBanner";
 
 const TODAY = "2026-03-05";
 const TODAY_DATE = new Date(TODAY + "T12:00:00");
@@ -254,6 +255,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 overflow-y-auto h-full scrollbar-thin">
+      <IntegrationHealthBanner />
       {/* Header with filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>

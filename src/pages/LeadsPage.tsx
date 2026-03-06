@@ -158,6 +158,12 @@ export default function LeadsPage() {
 
   const handleTransfer = async (newSdrId: string) => {
     if (!transferTarget || !user) return;
+    // Validate target SDR is active
+    const { data: targetProfile } = await supabase.from("profiles").select("status").eq("user_id", newSdrId).single();
+    if (targetProfile?.status !== "active") {
+      toast({ title: "Erro", description: "O SDR de destino não está ativo.", variant: "destructive" });
+      return;
+    }
     const oldSdrName = sdrs.find(s => s.user_id === transferTarget.sdr_id)?.full_name || "Nenhum";
     const newSdrName = sdrs.find(s => s.user_id === newSdrId)?.full_name || "Desconhecido";
     const ok = await updateLeadField(transferTarget.id, "sdr_id", newSdrId);

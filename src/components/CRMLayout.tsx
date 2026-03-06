@@ -32,6 +32,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "react-router-dom";
+import { IntegrationStatusDots } from "@/components/IntegrationHealthBanner";
 
 import { CalendarDays } from "lucide-react";
 
@@ -297,6 +298,7 @@ export function TopBar() {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
+          {!isMobile && <IntegrationStatusDots />}
           {isMobile && (
             <button className="w-9 h-9 rounded-md flex items-center justify-center hover:bg-muted transition-colors">
               <Search className="w-4 h-4 text-muted-foreground" />
