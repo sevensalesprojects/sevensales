@@ -9,6 +9,7 @@ export interface Project {
   status: string;
   timezone: string;
   language: string;
+  currency_code: string;
   created_at: string;
 }
 

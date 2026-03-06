@@ -483,6 +483,9 @@ function LeadFichaTab({
 
       {/* Tags */}
       <TagsSection leadId={lead.id} tags={lead.tags} />
+
+      {/* Follow-up */}
+      <FollowupSection leadId={lead.id} />
     </div>
   );
 }
@@ -791,5 +794,107 @@ function TasksTab({ leadId }: { leadId: string }) {
       ))}
       {tasks.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa. Adicione acima.</p>}
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════ */
+/* ─── FOLLOWUP SECTION ─── */
+/* ═══════════════════════════════════════════ */
+function FollowupSection({ leadId }: { leadId: string }) {
+  const [tasks, setTasks] = useState<{ id: string; due_at: string; status: string; message_text?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("followup_tasks")
+        .select("id, due_at, status, message_id")
+        .eq("lead_id", leadId)
+        .order("due_at", { ascending: true }) as any;
+
+      if (data && data.length > 0) {
+        const msgIds = data.map((t: any) => t.message_id);
+        const { data: msgs } = await supabase
+          .from("followup_messages")
+          .select("id, message_text")
+          .in("id", msgIds) as any;
+        const msgMap: Record<string, string> = {};
+        (msgs || []).forEach((m: any) => { msgMap[m.id] = m.message_text; });
+        setTasks(data.map((t: any) => ({ ...t, message_text: msgMap[t.message_id] || "" })));
+      } else {
+        setTasks([]);
+      }
+      setLoading(false);
+    };
+    fetchTasks();
+  }, [leadId]);
+
+  const completeTask = async (taskId: string) => {
+    await supabase.from("followup_tasks").update({ status: "completed" } as any).eq("id", taskId);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: "completed" } : t));
+    toast({ title: "Follow-up concluído" });
+  };
+
+  const pendingTasks = tasks.filter(t => t.status === "pending");
+  const nextTask = pendingTasks[0];
+
+  if (loading) return null;
+  if (tasks.length === 0) return null;
+
+  const getTimeRemaining = (dueAt: string) => {
+    const diff = new Date(dueAt).getTime() - Date.now();
+    if (diff <= 0) return "Vencido";
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  return (
+    <BlockSection title="Follow-up" icon={Clock}>
+      {nextTask && (
+        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-primary flex items-center gap-1">
+              <Clock className="w-3 h-3" /> Próximo follow-up em: {getTimeRemaining(nextTask.due_at)}
+            </span>
+          </div>
+          {nextTask.message_text && (
+            <div className="text-sm text-foreground bg-card rounded-md p-2 border border-border">
+              <p className="text-[10px] uppercase text-muted-foreground mb-1">Mensagem sugerida:</p>
+              {nextTask.message_text}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (nextTask.message_text) navigator.clipboard.writeText(nextTask.message_text);
+                toast({ title: "Mensagem copiada" });
+              }}
+              className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted"
+            >
+              Copiar mensagem
+            </button>
+            <button
+              onClick={() => completeTask(nextTask.id)}
+              className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
+            >
+              Marcar como concluído
+            </button>
+          </div>
+        </div>
+      )}
+      {tasks.length > 1 && (
+        <div className="space-y-1 mt-2">
+          {tasks.slice(1).map(t => (
+            <div key={t.id} className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${t.status === "completed" ? "text-muted-foreground line-through" : "text-foreground"}`}>
+              <div className={`w-3 h-3 rounded-full border ${t.status === "completed" ? "bg-primary border-primary" : "border-muted-foreground"}`} />
+              <span className="flex-1 truncate">{t.message_text || "Follow-up"}</span>
+              <span className="text-[10px] text-muted-foreground">{t.status === "completed" ? "✓" : getTimeRemaining(t.due_at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </BlockSection>
   );
 }

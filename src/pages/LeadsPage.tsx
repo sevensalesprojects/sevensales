@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useFunnels } from "@/hooks/useFunnels";
 import { useLeads, DBLead } from "@/hooks/useLeads";
 import { useProject } from "@/contexts/ProjectContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { LeadDetailPanel } from "@/components/LeadDetailPanel";
 import { CreateLeadDialog } from "@/components/CreateLeadDialog";
 import { EditLeadDialog } from "@/components/EditLeadDialog";
@@ -9,13 +10,18 @@ import { TransferLeadDialog } from "@/components/TransferLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { logSystemEvent, saveDeletedRecord } from "@/hooks/useSystemLog";
+import { formatCurrency } from "@/lib/currency";
 import {
   Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
-  Loader2, Phone, MessageCircle, Pencil,
+  Loader2, Phone, MessageCircle, Pencil, Tag, CheckSquare, Square, MinusSquare,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 
 const tagColors: Record<string, string> = {
@@ -28,10 +34,11 @@ const tagColors: Record<string, string> = {
 
 export default function LeadsPage() {
   const { currentProject } = useProject();
+  const { user } = useAuth();
   const { funnels, loading: funnelsLoading } = useFunnels();
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
-  const { leads, loading: leadsLoading, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
+  const { leads, loading: leadsLoading, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,10 +52,17 @@ export default function LeadsPage() {
   const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
   const isMobile = useIsMobile();
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkTransferOpen, setBulkTransferOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+
   const loading = funnelsLoading || leadsLoading;
   const stages = activeFunnel?.stages || [];
 
-  // Fetch SDRs for transfer/edit
+  // Fetch SDRs
   useEffect(() => {
     const fetchSdrs = async () => {
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["sdr"]);
@@ -60,13 +74,44 @@ export default function LeadsPage() {
     fetchSdrs();
   }, []);
 
+  // Fetch tags for bulk actions
+  useEffect(() => {
+    if (!currentProject) return;
+    const fetchTags = async () => {
+      const { data } = await supabase.from("tags").select("id, name").eq("project_id", currentProject.id);
+      if (data) setAllTags(data);
+    };
+    fetchTags();
+  }, [currentProject?.id]);
+
   const filteredLeads = leads.filter((l) => {
     const matchesSearch = !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || (l.phone || "").includes(searchQuery);
     const matchesTag = !selectedTag || l.tags.map(t => t.toLowerCase()).includes(selectedTag.toLowerCase());
     return matchesSearch && matchesTag;
   });
 
-  const allTags = Array.from(new Set(leads.flatMap((l) => l.tags)));
+  const tagsList = Array.from(new Set(leads.flatMap((l) => l.tags)));
+
+  // Bulk selection helpers
+  const allSelected = filteredLeads.length > 0 && filteredLeads.every(l => selectedIds.has(l.id));
+  const someSelected = filteredLeads.some(l => selectedIds.has(l.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleDrop = async (stageId: string) => {
     if (!draggedLead) return;
@@ -75,7 +120,6 @@ export default function LeadsPage() {
   };
 
   const handleDeleteRequest = async (lead: DBLead) => {
-    // Check dependencies
     const [
       { count: msgCount },
       { count: salesCount },
@@ -100,19 +144,25 @@ export default function LeadsPage() {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !user) return;
+    // Save snapshot before deleting
+    await saveDeletedRecord({ entityType: "lead", entityId: deleteTarget.id, dataSnapshot: deleteTarget, deletedBy: user.id });
     const success = await deleteLead(deleteTarget.id);
-    if (success) toast({ title: "Lead excluído", description: `${deleteTarget.name} foi removido.` });
+    if (success) {
+      await logSystemEvent({ userId: user.id, projectId: currentProject?.id, action: "lead_deleted", entityType: "lead", entityId: deleteTarget.id, metadata: { name: deleteTarget.name } });
+      toast({ title: "Lead excluído", description: `${deleteTarget.name} foi removido.` });
+    }
     setDeleteTarget(null);
     setDeleteWarning(null);
   };
 
   const handleTransfer = async (newSdrId: string) => {
-    if (!transferTarget) return;
+    if (!transferTarget || !user) return;
     const oldSdrName = sdrs.find(s => s.user_id === transferTarget.sdr_id)?.full_name || "Nenhum";
     const newSdrName = sdrs.find(s => s.user_id === newSdrId)?.full_name || "Desconhecido";
     const ok = await updateLeadField(transferTarget.id, "sdr_id", newSdrId);
     if (ok) {
+      await logSystemEvent({ userId: user.id, projectId: currentProject?.id, action: "lead_transferred", entityType: "lead", entityId: transferTarget.id, metadata: { from: oldSdrName, to: newSdrName } });
       toast({ title: "Lead transferido", description: `${transferTarget.name}: ${oldSdrName} → ${newSdrName}` });
     }
   };
@@ -125,12 +175,55 @@ export default function LeadsPage() {
     return true;
   };
 
+  // Bulk actions
+  const handleBulkDelete = async () => {
+    if (!user) return;
+    let count = 0;
+    for (const id of selectedIds) {
+      const lead = leads.find(l => l.id === id);
+      if (lead) {
+        await saveDeletedRecord({ entityType: "lead", entityId: id, dataSnapshot: lead, deletedBy: user.id });
+      }
+      const ok = await deleteLead(id);
+      if (ok) count++;
+    }
+    toast({ title: "Leads excluídos", description: `${count} lead(s) removido(s).` });
+    setSelectedIds(new Set());
+    setBulkDeleteOpen(false);
+  };
+
+  const handleBulkTransfer = async (newSdrId: string) => {
+    let count = 0;
+    for (const id of selectedIds) {
+      const ok = await updateLeadField(id, "sdr_id", newSdrId);
+      if (ok) count++;
+    }
+    const sdrName = sdrs.find(s => s.user_id === newSdrId)?.full_name || "SDR";
+    toast({ title: "Leads transferidos", description: `${count} lead(s) transferido(s) para ${sdrName}.` });
+    setSelectedIds(new Set());
+    setBulkTransferOpen(false);
+  };
+
+  const handleBulkAddTag = async (tagId: string) => {
+    let count = 0;
+    for (const id of selectedIds) {
+      const { error } = await supabase.from("lead_tags").insert({ lead_id: id, tag_id: tagId });
+      if (!error) count++;
+    }
+    const tagName = allTags.find(t => t.id === tagId)?.name || "Tag";
+    toast({ title: "Tags adicionadas", description: `Tag "${tagName}" adicionada a ${count} lead(s).` });
+    setSelectedIds(new Set());
+    setBulkTagOpen(false);
+    refetch();
+  };
+
   const handleExport = () => {
+    const leadsToExport = selectedIds.size > 0 ? filteredLeads.filter(l => selectedIds.has(l.id)) : filteredLeads;
     const csv = [
-      ["Nome", "Telefone", "Email", "Origem", "Canal", "Valor", "Tags"].join(","),
-      ...filteredLeads.map(l => [
-        `"${l.name}"`, l.phone || "", l.email || "", l.source || "", l.channel || "",
-        l.value_estimate || "", `"${l.tags.join(";")}"`,
+      ["Nome", "Telefone", "Email", "Instagram", "País", "Origem", "Canal", "Valor", "Tags"].join(","),
+      ...leadsToExport.map(l => [
+        `"${l.name}"`, l.phone || "", l.email || "", l.instagram || "", l.country || "",
+        l.source || "", l.channel || "", l.value_estimate || "", `"${l.tags.join(";")}"`,
       ].join(","))
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -140,8 +233,10 @@ export default function LeadsPage() {
     a.download = `leads-${currentProject?.name || "export"}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Exportado", description: `${filteredLeads.length} leads exportados em CSV.` });
+    toast({ title: "Exportado", description: `${leadsToExport.length} leads exportados em CSV.` });
   };
+
+  const currencyCode = (currentProject as any)?.currency_code || "BRL";
 
   if (loading) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
@@ -198,19 +293,64 @@ export default function LeadsPage() {
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin shrink-0">
           <button onClick={() => setSelectedTag(null)} className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${!selectedTag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>Todos</button>
-          {allTags.map((tag) => (
+          {tagsList.map((tag) => (
             <button key={tag} onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
               className={`h-7 px-2.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${selectedTag === tag ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>{tag}</button>
           ))}
         </div>
       </div>
 
-      {/* Content — List only */}
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="px-4 md:px-6 py-2 border-b border-border bg-primary/5 flex items-center gap-2 shrink-0">
+          <span className="text-xs font-medium text-primary">{selectedIds.size} selecionado(s)</span>
+          <div className="flex-1" />
+          <button onClick={handleExport} className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1">
+            <Download className="w-3 h-3" /> Exportar
+          </button>
+          {sdrs.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1">
+                <ArrowRightLeft className="w-3 h-3" /> Transferir
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {sdrs.map(s => (
+                  <DropdownMenuItem key={s.user_id} onClick={() => handleBulkTransfer(s.user_id)}>
+                    {s.full_name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {allTags.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1">
+                <Tag className="w-3 h-3" /> Tag
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {allTags.map(t => (
+                  <DropdownMenuItem key={t.id} onClick={() => handleBulkAddTag(t.id)}>
+                    {t.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <button onClick={() => setBulkDeleteOpen(true)} className="h-7 px-2.5 rounded-md bg-destructive/10 text-destructive text-xs hover:bg-destructive/20 flex items-center gap-1">
+            <Trash2 className="w-3 h-3" /> Apagar
+          </button>
+          <button onClick={() => setSelectedIds(new Set())} className="h-7 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-muted">
+            Limpar
+          </button>
+        </div>
+      )}
+
+      {/* Content — List */}
       <div className="flex-1 overflow-auto p-3 md:p-4">
         {isMobile ? (
           <div className="space-y-2">
             {filteredLeads.map((lead) => (
-              <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} />
+              <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} currencyCode={currencyCode} />
             ))}
           </div>
         ) : (
@@ -219,6 +359,11 @@ export default function LeadsPage() {
               <table className="w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
+                    <th className="px-3 py-3 w-10">
+                      <button onClick={toggleSelectAll} className="flex items-center justify-center">
+                        {allSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : someSelected ? <MinusSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                      </button>
+                    </th>
                     <th className="text-left px-3 py-3 font-medium text-muted-foreground">Nome</th>
                     <th className="text-left px-3 py-3 font-medium text-muted-foreground">Telefone</th>
                     <th className="text-left px-3 py-3 font-medium text-muted-foreground">Email</th>
@@ -251,8 +396,14 @@ export default function LeadsPage() {
                 <tbody>
                   {filteredLeads.map((lead) => {
                     const stage = stages.find((s) => s.id === lead.stage_id);
+                    const isSelected = selectedIds.has(lead.id);
                     return (
-                      <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors">
+                      <tr key={lead.id} onClick={() => setSelectedLead(lead)} className={`border-b border-border hover:bg-muted/30 cursor-pointer transition-colors ${isSelected ? "bg-primary/5" : ""}`}>
+                        <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => toggleSelect(lead.id)} className="flex items-center justify-center">
+                            {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                          </button>
+                        </td>
                         <td className="px-3 py-2.5 font-medium text-foreground">{lead.name}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{lead.phone || "—"}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{lead.email || "—"}</td>
@@ -268,7 +419,7 @@ export default function LeadsPage() {
                             {lead.tags.map((tag) => <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>)}
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
+                        <td className="px-3 py-2.5 text-foreground font-medium">{lead.value_estimate ? formatCurrency(lead.value_estimate, currencyCode) : "—"}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{lead.qualification_score || "—"}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{lead.reference_month || "—"}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{lead.group_link ? <a href={lead.group_link} target="_blank" rel="noreferrer" className="text-primary underline text-xs" onClick={e => e.stopPropagation()}>Link</a> : "—"}</td>
@@ -331,7 +482,6 @@ export default function LeadsPage() {
         funnelId={activeFunnel?.id}
       />
 
-      {/* Edit Lead Dialog */}
       {editTarget && (
         <EditLeadDialog
           open={!!editTarget}
@@ -342,7 +492,6 @@ export default function LeadsPage() {
         />
       )}
 
-      {/* Transfer Lead Dialog */}
       {transferTarget && (
         <TransferLeadDialog
           open={!!transferTarget}
@@ -354,7 +503,6 @@ export default function LeadsPage() {
         />
       )}
 
-      {/* Delete Confirmation */}
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteWarning(null); } }}
@@ -369,7 +517,16 @@ export default function LeadsPage() {
         destructive
       />
 
-      {/* Move stage dialog */}
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Excluir Leads em Massa"
+        description={`Tem certeza que deseja excluir ${selectedIds.size} lead(s)? Esta ação não pode ser desfeita. Os dados serão salvos para possível restauração em até 30 dias.`}
+        onConfirm={handleBulkDelete}
+        confirmLabel="Excluir Todos"
+        destructive
+      />
+
       {moveTarget && (
         <div className="fixed inset-0 bg-foreground/20 z-50 flex items-center justify-center p-4" onClick={() => setMoveTarget(null)}>
           <div className="bg-card border border-border rounded-lg p-5 w-full max-w-xs space-y-3" onClick={(e) => e.stopPropagation()}>
@@ -399,12 +556,12 @@ export default function LeadsPage() {
   );
 }
 
-function LeadCardDB({ lead, onDragStart, onClick }: { lead: DBLead; onDragStart: () => void; onClick: () => void }) {
+function LeadCardDB({ lead, onDragStart, onClick, currencyCode }: { lead: DBLead; onDragStart: () => void; onClick: () => void; currencyCode: string }) {
   return (
     <div draggable onDragStart={onDragStart} onClick={onClick} className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group">
       <div className="flex items-start justify-between mb-2">
         <p className="text-sm font-medium text-card-foreground leading-tight">{lead.name}</p>
-        {lead.value_estimate && <span className="text-xs font-semibold text-primary">R$ {lead.value_estimate.toLocaleString("pt-BR")}</span>}
+        {lead.value_estimate && <span className="text-xs font-semibold text-primary">{formatCurrency(lead.value_estimate, currencyCode)}</span>}
       </div>
       {lead.phone && <div className="flex items-center gap-2 mb-2"><Phone className="w-3 h-3 text-muted-foreground" /><span className="text-xs text-muted-foreground">{lead.phone}</span></div>}
       <div className="flex flex-wrap gap-1 mb-2">
