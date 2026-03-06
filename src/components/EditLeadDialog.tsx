@@ -38,7 +38,7 @@ export function EditLeadDialog({ open, onOpenChange, lead, sdrs, onSave }: EditL
         email: lead.email || "",
         instagram: lead.instagram || "",
         source: lead.source || "",
-        sdr_id: lead.sdr_id || "",
+        sdr_id: lead.sdr_id || "__none__",
       });
     }
   }, [lead]);
