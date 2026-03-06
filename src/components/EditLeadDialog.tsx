@@ -54,7 +54,8 @@ export function EditLeadDialog({ open, onOpenChange, lead, sdrs, onSave }: EditL
     if (form.email !== (lead.email || "")) updates.email = form.email || null;
     if (form.instagram !== (lead.instagram || "")) updates.instagram = form.instagram || null;
     if (form.source !== (lead.source || "")) updates.source = form.source || null;
-    if (form.sdr_id !== (lead.sdr_id || "")) updates.sdr_id = form.sdr_id || null;
+    const sdrVal = form.sdr_id === "__none__" ? null : form.sdr_id || null;
+    if (sdrVal !== (lead.sdr_id || null)) updates.sdr_id = sdrVal;
 
     if (Object.keys(updates).length > 0) {
       // Update fields one at a time to use existing hook
