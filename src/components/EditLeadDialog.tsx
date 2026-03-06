@@ -109,7 +109,7 @@ export function EditLeadDialog({ open, onOpenChange, lead, sdrs, onSave }: EditL
               <Select value={form.sdr_id} onValueChange={(v) => setForm({ ...form, sdr_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar SDR" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
                   {sdrs.map((s) => <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
