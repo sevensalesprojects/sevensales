@@ -33,7 +33,6 @@ export default function LeadsPage() {
   const { leads, loading: leadsLoading, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showCreateLead, setShowCreateLead] = useState(false);
