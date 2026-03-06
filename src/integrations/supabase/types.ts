@@ -431,6 +431,149 @@ export type Database = {
           },
         ]
       }
+      onboarding_checklist: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          id: string
+          onboarding_id: string
+          position: number
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          onboarding_id: string
+          position?: number
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          onboarding_id?: string
+          position?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_checklist_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_process"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          onboarding_id: string
+          stage_from: string | null
+          stage_to: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          onboarding_id: string
+          stage_from?: string | null
+          stage_to: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          onboarding_id?: string
+          stage_from?: string | null
+          stage_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_history_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_process"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_process: {
+        Row: {
+          assigned_user: string | null
+          call_link: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          notes: string | null
+          project_id: string
+          purchase_date: string | null
+          sale_id: string | null
+          scheduled_call_date: string | null
+          stage: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_user?: string | null
+          call_link?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          notes?: string | null
+          project_id: string
+          purchase_date?: string | null
+          sale_id?: string | null
+          scheduled_call_date?: string | null
+          stage?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_user?: string | null
+          call_link?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          project_id?: string
+          purchase_date?: string | null
+          sale_id?: string | null
+          scheduled_call_date?: string | null
+          stage?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_process_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_process_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_process_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
