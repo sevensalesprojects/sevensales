@@ -268,7 +268,9 @@ export function BottomNav() {
 export function TopBar() {
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const { currentProject } = useProject();
+  const { unreadCount } = useNotifications();
 
   return (
     <>
@@ -297,12 +299,17 @@ export function TopBar() {
               <Search className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
-          <button className="w-9 h-9 rounded-md flex items-center justify-center hover:bg-muted transition-colors relative">
+          <button onClick={() => setNotifOpen(!notifOpen)} className="w-9 h-9 rounded-md flex items-center justify-center hover:bg-muted transition-colors relative">
             <Bell className="w-4 h-4 text-muted-foreground" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </button>
         </div>
       </header>
+      <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
     </>
   );
 }
