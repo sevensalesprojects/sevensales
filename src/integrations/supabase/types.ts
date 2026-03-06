@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
       automations: {
         Row: {
           action_config: Json
@@ -98,6 +131,155 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deleted_records: {
+        Row: {
+          data_snapshot: Json
+          deleted_at: string
+          deleted_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          data_snapshot: Json
+          deleted_at?: string
+          deleted_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          data_snapshot?: Json
+          deleted_at?: string
+          deleted_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      followup_flows: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          project_id: string
+          trigger_condition: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          project_id: string
+          trigger_condition: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          project_id?: string
+          trigger_condition?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_flows_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_messages: {
+        Row: {
+          delay_hours: number
+          flow_id: string
+          id: string
+          message_text: string
+          order_position: number
+        }
+        Insert: {
+          delay_hours?: number
+          flow_id: string
+          id?: string
+          message_text: string
+          order_position?: number
+        }
+        Update: {
+          delay_hours?: number
+          flow_id?: string
+          id?: string
+          message_text?: string
+          order_position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_messages_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "followup_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_tasks: {
+        Row: {
+          assigned_sdr: string
+          created_at: string
+          due_at: string
+          flow_id: string
+          id: string
+          lead_id: string
+          message_id: string
+          status: string
+        }
+        Insert: {
+          assigned_sdr: string
+          created_at?: string
+          due_at: string
+          flow_id: string
+          id?: string
+          lead_id: string
+          message_id: string
+          status?: string
+        }
+        Update: {
+          assigned_sdr?: string
+          created_at?: string
+          due_at?: string
+          flow_id?: string
+          id?: string
+          lead_id?: string
+          message_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_tasks_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "followup_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_tasks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "followup_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -431,6 +613,53 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          is_read: boolean
+          project_id: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          project_id: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_read?: boolean
+          project_id?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_checklist: {
         Row: {
           completed: boolean
@@ -613,6 +842,7 @@ export type Database = {
       projects: {
         Row: {
           created_at: string
+          currency_code: string
           description: string | null
           id: string
           language: string
@@ -623,6 +853,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          currency_code?: string
           description?: string | null
           id?: string
           language?: string
@@ -633,6 +864,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          currency_code?: string
           description?: string | null
           id?: string
           language?: string
@@ -687,6 +919,47 @@ export type Database = {
           },
           {
             foreignKeyName: "sales_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          project_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_logs_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -851,6 +1124,44 @@ export type Database = {
             columns: ["integration_id"]
             isOneToOne: false
             referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          phone_number: string | null
+          project_id: string
+          session_token: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone_number?: string | null
+          project_id: string
+          session_token?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone_number?: string | null
+          project_id?: string
+          session_token?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
