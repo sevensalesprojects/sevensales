@@ -14,6 +14,7 @@ import ConversationsPage from "@/pages/ConversationsPage";
 import SDRsPage from "@/pages/SDRsPage";
 import ClosersPage from "@/pages/ClosersPage";
 import OnboardingPage from "@/pages/OnboardingPage";
+import RankingPage from "@/pages/RankingPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -92,6 +93,7 @@ const App = () => (
                     <Route path="/conversations" element={<ConversationsPage />} />
                     <Route path="/sdrs" element={<SDRsPage />} />
                     <Route path="/closers" element={<ClosersPage />} />
+                    <Route path="/ranking" element={<RankingPage />} />
                     <Route path="/onboarding" element={<OnboardingPage />} />
                     <Route path="/integrations" element={<IntegrationsPage />} />
                     <Route path="/users" element={<UsersPage />} />
