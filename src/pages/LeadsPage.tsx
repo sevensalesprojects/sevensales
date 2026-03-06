@@ -1,21 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFunnels } from "@/hooks/useFunnels";
 import { useLeads, DBLead } from "@/hooks/useLeads";
 import { useProject } from "@/contexts/ProjectContext";
 import { LeadDetailPanel } from "@/components/LeadDetailPanel";
 import { CreateLeadDialog } from "@/components/CreateLeadDialog";
+import { EditLeadDialog } from "@/components/EditLeadDialog";
+import { TransferLeadDialog } from "@/components/TransferLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  Plus, LayoutGrid, List, Search, Download, Upload,
-  SlidersHorizontal, Trash2, UserCog, ArrowRightLeft, Loader2, Phone, MessageCircle,
+  Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
+  Loader2, Phone, MessageCircle, Pencil,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-
-
 
 const tagColors: Record<string, string> = {
   quente: "bg-destructive/15 text-destructive",
@@ -37,11 +38,27 @@ export default function LeadsPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DBLead | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [moveTarget, setMoveTarget] = useState<DBLead | null>(null);
+  const [editTarget, setEditTarget] = useState<DBLead | null>(null);
+  const [transferTarget, setTransferTarget] = useState<DBLead | null>(null);
+  const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
   const isMobile = useIsMobile();
 
   const loading = funnelsLoading || leadsLoading;
   const stages = activeFunnel?.stages || [];
+
+  // Fetch SDRs for transfer/edit
+  useEffect(() => {
+    const fetchSdrs = async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("role", ["sdr"]);
+      if (!roles || roles.length === 0) return;
+      const sdrIds = roles.map((r) => r.user_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", sdrIds);
+      if (profiles) setSdrs(profiles);
+    };
+    fetchSdrs();
+  }, []);
 
   const filteredLeads = leads.filter((l) => {
     const matchesSearch = !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || (l.phone || "").includes(searchQuery);
@@ -57,11 +74,55 @@ export default function LeadsPage() {
     setDraggedLead(null);
   };
 
+  const handleDeleteRequest = async (lead: DBLead) => {
+    // Check dependencies
+    const [
+      { count: msgCount },
+      { count: salesCount },
+      { count: callsCount },
+    ] = await Promise.all([
+      supabase.from("messages").select("id", { count: "exact", head: true }).eq("lead_id", lead.id),
+      supabase.from("sales").select("id", { count: "exact", head: true }).eq("lead_id", lead.id),
+      supabase.from("calls").select("id", { count: "exact", head: true }).eq("lead_id", lead.id),
+    ]);
+
+    const deps: string[] = [];
+    if ((msgCount || 0) > 0) deps.push(`${msgCount} mensagem(ns)`);
+    if ((salesCount || 0) > 0) deps.push(`${salesCount} venda(s)`);
+    if ((callsCount || 0) > 0) deps.push(`${callsCount} call(s)`);
+
+    if (deps.length > 0) {
+      setDeleteWarning(`Este lead possui ${deps.join(", ")}. Todos os registros associados serão perdidos.`);
+    } else {
+      setDeleteWarning(null);
+    }
+    setDeleteTarget(lead);
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const success = await deleteLead(deleteTarget.id);
     if (success) toast({ title: "Lead excluído", description: `${deleteTarget.name} foi removido.` });
     setDeleteTarget(null);
+    setDeleteWarning(null);
+  };
+
+  const handleTransfer = async (newSdrId: string) => {
+    if (!transferTarget) return;
+    const oldSdrName = sdrs.find(s => s.user_id === transferTarget.sdr_id)?.full_name || "Nenhum";
+    const newSdrName = sdrs.find(s => s.user_id === newSdrId)?.full_name || "Desconhecido";
+    const ok = await updateLeadField(transferTarget.id, "sdr_id", newSdrId);
+    if (ok) {
+      toast({ title: "Lead transferido", description: `${transferTarget.name}: ${oldSdrName} → ${newSdrName}` });
+    }
+  };
+
+  const handleEditSave = async (leadId: string, updates: Record<string, any>) => {
+    for (const [field, value] of Object.entries(updates)) {
+      await updateLeadField(leadId, field, value);
+    }
+    toast({ title: "Lead atualizado" });
+    return true;
   };
 
   const handleExport = () => {
@@ -226,13 +287,13 @@ export default function LeadsPage() {
                         <td className="px-3 py-2.5 text-muted-foreground">{new Date(lead.updated_at).toLocaleDateString("pt-BR")}</td>
                         <td className="px-3 py-2.5 sticky right-0 bg-card">
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => toast({ title: "Em breve", description: "Atribuição de SDR será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
-                              <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
+                            <button onClick={() => setEditTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Editar Lead">
+                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>
-                            <button onClick={() => setMoveTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Mover etapa">
+                            <button onClick={() => setTransferTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Transferir SDR">
                               <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>
-                            <button onClick={() => setDeleteTarget(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
+                            <button onClick={() => handleDeleteRequest(lead)} className="w-7 h-7 rounded flex items-center justify-center hover:bg-destructive/10" title="Excluir">
                               <Trash2 className="w-3.5 h-3.5 text-destructive" />
                             </button>
                           </div>
@@ -253,7 +314,6 @@ export default function LeadsPage() {
           onClose={() => setSelectedLead(null)}
           onFieldUpdate={updateLeadField}
           onLeadChanged={() => {
-            // Update the selected lead with fresh data from state
             const updated = leads.find(l => l.id === selectedLead.id);
             if (updated) setSelectedLead(updated);
           }}
@@ -271,11 +331,39 @@ export default function LeadsPage() {
         funnelId={activeFunnel?.id}
       />
 
+      {/* Edit Lead Dialog */}
+      {editTarget && (
+        <EditLeadDialog
+          open={!!editTarget}
+          onOpenChange={(open) => { if (!open) setEditTarget(null); }}
+          lead={editTarget}
+          sdrs={sdrs}
+          onSave={handleEditSave}
+        />
+      )}
+
+      {/* Transfer Lead Dialog */}
+      {transferTarget && (
+        <TransferLeadDialog
+          open={!!transferTarget}
+          onOpenChange={(open) => { if (!open) setTransferTarget(null); }}
+          leadName={transferTarget.name}
+          currentSdrId={transferTarget.sdr_id}
+          sdrs={sdrs}
+          onConfirm={handleTransfer}
+        />
+      )}
+
+      {/* Delete Confirmation */}
       <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteWarning(null); } }}
         title="Excluir Lead"
-        description={`Tem certeza que deseja excluir "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`}
+        description={
+          deleteWarning
+            ? `Tem certeza que deseja excluir "${deleteTarget?.name}"?\n\n⚠️ ${deleteWarning}`
+            : `Tem certeza que deseja excluir "${deleteTarget?.name}"? Esta ação não pode ser desfeita.`
+        }
         onConfirm={handleDelete}
         confirmLabel="Excluir"
         destructive
