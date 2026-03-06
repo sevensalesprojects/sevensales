@@ -14,6 +14,7 @@ import ConversationsPage from "@/pages/ConversationsPage";
 import SDRsPage from "@/pages/SDRsPage";
 import ClosersPage from "@/pages/ClosersPage";
 import OnboardingPage from "@/pages/OnboardingPage";
+import RankingPage from "@/pages/RankingPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
