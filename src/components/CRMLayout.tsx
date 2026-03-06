@@ -37,6 +37,7 @@ const navItems = [
   { title: "Funis", url: "/funnels", icon: Kanban },
   { title: "SDRs", url: "/sdrs", icon: UserCog },
   { title: "Closers", url: "/closers", icon: Handshake },
+  { title: "Ranking", url: "/ranking", icon: Trophy },
   { title: "Onboarding", url: "/onboarding", icon: ClipboardList },
   { title: "Integrações", url: "/integrations", icon: Plug },
   { title: "Usuários", url: "/users", icon: FolderKanban },
