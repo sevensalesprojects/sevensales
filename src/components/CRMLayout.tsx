@@ -287,16 +287,7 @@ export function TopBar() {
                 {currentProject?.name || "VendaFlow"}
               </span>
             </div>
-          ) : (
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Buscar leads, conversas..."
-                className="h-9 w-64 rounded-md border border-input bg-muted/50 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-          )}
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {isMobile && (
