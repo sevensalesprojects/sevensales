@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardList,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
