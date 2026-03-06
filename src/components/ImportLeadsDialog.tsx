@@ -503,9 +503,9 @@ export function ImportLeadsDialog({ open, onOpenChange, onComplete }: ImportLead
         {step === "done" && (
           <div className="space-y-4 py-6 text-center">
             {importResult.errors === 0 ? (
-              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
+              <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
             ) : (
-              <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto" />
+              <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
             )}
             <div>
               <p className="text-lg font-semibold text-foreground">
