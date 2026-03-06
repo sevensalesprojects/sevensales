@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProject } from "@/contexts/ProjectContext";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatCurrency } from "@/lib/currency";
 
 interface LeadDetailPanelProps {
   lead: DBLead;
@@ -18,41 +19,44 @@ interface LeadDetailPanelProps {
   onLeadChanged?: () => void;
 }
 
-/* ─── Inline Editable Field ─── */
-function InlineField({
-  label,
-  value,
-  onSave,
-  icon: Icon,
-  type = "text",
-  options,
-  placeholder,
-  multiline,
-  linkUrl,
+/* ─── Auto-save field with logging ─── */
+function AutoField({
+  label, value, field, leadId, userId, onSave,
+  icon: Icon, type = "text", options, placeholder, multiline,
 }: {
   label: string;
   value: string | null;
-  onSave: (val: string | null) => void;
+  field: string;
+  leadId: string;
+  userId?: string;
+  onSave: (field: string, value: any) => void;
   icon?: any;
-  type?: "text" | "select" | "date" | "link";
+  type?: "text" | "select" | "date" | "link" | "currency";
   options?: { value: string; label: string }[];
   placeholder?: string;
   multiline?: boolean;
-  linkUrl?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null);
+  const inputRef = useRef<any>(null);
+  const debounceRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => { setDraft(value || ""); }, [value]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
 
-  const commit = () => {
-    setEditing(false);
-    const finalVal = draft.trim() || null;
-    if (finalVal !== (value || null)) onSave(finalVal);
-  };
+  const logAndSave = useCallback((newVal: string | null) => {
+    if (newVal === (value || null)) return;
+    onSave(field, newVal);
+    // Log activity
+    if (userId) {
+      supabase.from("lead_activity_logs").insert({
+        lead_id: leadId, user_id: userId, action: `${field}_updated`,
+        field_changed: field, old_value: value || null, new_value: newVal,
+      } as any).then(() => {});
+    }
+  }, [field, leadId, userId, value, onSave]);
 
+  // For select/date - save immediately onChange
   if (type === "select" && options) {
     return (
       <div className="group">
@@ -60,15 +64,12 @@ function InlineField({
           {Icon && <Icon className="w-3 h-3" />} {label}
         </p>
         <select
-          ref={inputRef as any}
           value={value || ""}
-          onChange={(e) => onSave(e.target.value || null)}
+          onChange={(e) => logAndSave(e.target.value || null)}
           className="w-full text-sm bg-transparent border border-transparent hover:border-input focus:border-ring rounded px-1 py-0.5 outline-none cursor-pointer text-foreground"
         >
           <option value="">{placeholder || "Selecionar..."}</option>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
+          {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
     );
@@ -83,12 +84,37 @@ function InlineField({
         <input
           type="datetime-local"
           value={value ? new Date(value).toISOString().slice(0, 16) : ""}
-          onChange={(e) => onSave(e.target.value ? new Date(e.target.value).toISOString() : null)}
+          onChange={(e) => logAndSave(e.target.value ? new Date(e.target.value).toISOString() : null)}
           className="w-full text-sm bg-transparent border border-transparent hover:border-input focus:border-ring rounded px-1 py-0.5 outline-none text-foreground"
         />
       </div>
     );
   }
+
+  // For text/link/currency - debounce auto-save
+  const handleChange = (newDraft: string) => {
+    setDraft(newDraft);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const finalVal = newDraft.trim() || null;
+      if (type === "currency") {
+        logAndSave(finalVal ? String(Number(finalVal.replace(/[^0-9.,-]/g, "").replace(",", "."))) : null);
+      } else {
+        logAndSave(finalVal);
+      }
+    }, 800);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const finalVal = draft.trim() || null;
+    if (type === "currency") {
+      logAndSave(finalVal ? String(Number(finalVal.replace(/[^0-9.,-]/g, "").replace(",", "."))) : null);
+    } else {
+      logAndSave(finalVal);
+    }
+  };
 
   return (
     <div className="group">
@@ -103,9 +129,9 @@ function InlineField({
       {editing ? (
         multiline ? (
           <textarea
-            ref={inputRef as any}
+            ref={inputRef}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Escape") { setDraft(value || ""); setEditing(false); } }}
             placeholder={placeholder}
@@ -114,10 +140,10 @@ function InlineField({
           />
         ) : (
           <input
-            ref={inputRef as any}
+            ref={inputRef}
             type="text"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
               if (e.key === "Enter") commit();
@@ -141,21 +167,12 @@ function InlineField({
 
 /* ─── Checkbox Field ─── */
 function CheckboxField({
-  label,
-  checked,
-  onChange,
-  icon: Icon,
+  label, checked, onChange, icon: Icon,
 }: {
-  label: string;
-  checked: boolean;
-  onChange: (val: boolean) => void;
-  icon?: any;
+  label: string; checked: boolean; onChange: (val: boolean) => void; icon?: any;
 }) {
   return (
-    <div
-      className="flex items-center gap-2.5 cursor-pointer group"
-      onClick={() => onChange(!checked)}
-    >
+    <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => onChange(!checked)}>
       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
         checked ? "bg-primary border-primary" : "border-muted-foreground group-hover:border-primary/50"
       }`}>
@@ -182,34 +199,28 @@ function BlockSection({ title, children, icon: Icon }: { title: string; children
   );
 }
 
-/* ─── Sale status badge ─── */
+/* ─── Options ─── */
 const saleStatusOptions = [
   { value: "pending", label: "Pendente" },
-  { value: "sold", label: "Vendeu" },
-  { value: "negative", label: "Negativa" },
-  { value: "negotiating", label: "Em Negociação" },
-  { value: "signal", label: "Sinal de Negócio" },
-  { value: "payment_pending", label: "Pgto Pendente" },
+  { value: "sold", label: "Ganho" },
+  { value: "lost", label: "Perdido" },
 ];
 
 const qualificationOptions = [
-  { value: "ruim", label: "Ruim" },
-  { value: "medio", label: "Médio" },
-  { value: "bom", label: "Bom" },
-  { value: "excelente", label: "Excelente" },
+  { value: "muito_qualificado", label: "Muito qualificado" },
+  { value: "qualificado", label: "Qualificado" },
+  { value: "pouco_qualificado", label: "Pouco qualificado" },
+  { value: "desqualificado", label: "Desqualificado" },
 ];
 
 const sourceOptions = [
-  { value: "Instagram Orgânico", label: "Instagram Orgânico" },
-  { value: "compra_hotmart", label: "Compra Hotmart" },
-  { value: "forms_bio", label: "Forms Bio" },
-  { value: "forms_lista_espera", label: "Forms Lista de Espera" },
-  { value: "forms_youtube", label: "Forms YouTube" },
+  { value: "Instagram", label: "Instagram" },
+  { value: "WhatsApp", label: "WhatsApp" },
+  { value: "Indicação", label: "Indicação" },
   { value: "Tráfego Pago", label: "Tráfego Pago" },
   { value: "YouTube", label: "YouTube" },
-  { value: "Indicação", label: "Indicação" },
-  { value: "WhatsApp", label: "WhatsApp" },
-  { value: "Facebook Ads", label: "Facebook Ads" },
+  { value: "Orgânico", label: "Orgânico" },
+  { value: "Outro", label: "Outro" },
 ];
 
 const countryOptions = [
@@ -227,9 +238,13 @@ const monthOptions = Array.from({ length: 12 }, (_, i) => {
   };
 });
 
-/* ─── Main Panel ─── */
+/* ═════════════════════════════════════════════ */
+/* ─── MAIN PANEL ─── */
+/* ═════════════════════════════════════════════ */
 export function LeadDetailPanel({ lead, onClose, onFieldUpdate, onLeadChanged }: LeadDetailPanelProps) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { currentProject } = useProject();
   const [closers, setClosers] = useState<{ user_id: string; full_name: string }[]>([]);
   const [activeTab, setActiveTab] = useState<"ficha" | "conversa" | "notas" | "tarefas">("ficha");
   const [localLead, setLocalLead] = useState<DBLead>(lead);
@@ -248,17 +263,34 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate, onLeadChanged }:
   }, []);
 
   const saveField = useCallback(async (field: string, value: any) => {
+    // Validation rules
+    if (field === "name" && typeof value === "string" && value.length < 2) {
+      toast({ title: "Erro", description: "Nome deve ter pelo menos 2 caracteres.", variant: "destructive" });
+      return;
+    }
+    if (field === "value_estimate" && value !== null && Number(value) < 0) {
+      toast({ title: "Erro", description: "Valor da venda deve ser >= 0.", variant: "destructive" });
+      return;
+    }
+    if (field === "sale_status" && value === "sold") {
+      if (!localLead.value_estimate && !localLead.closer_id) {
+        toast({ title: "Atenção", description: "Para marcar como Ganho, preencha o valor e o closer.", variant: "destructive" });
+      }
+    }
+
     if (onFieldUpdate) {
       const ok = await onFieldUpdate(localLead.id, field, value);
       if (ok) {
         setLocalLead(prev => ({ ...prev, [field]: value }));
-        toast({ title: "Salvo", description: `Campo atualizado.` });
         onLeadChanged?.();
       } else {
         toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
       }
     }
-  }, [localLead.id, onFieldUpdate, onLeadChanged]);
+  }, [localLead.id, localLead.value_estimate, localLead.closer_id, onFieldUpdate, onLeadChanged]);
+
+  const closerOptions = closers.map((c) => ({ value: c.user_id, label: c.full_name }));
+  const currencyCode = currentProject?.currency_code || "BRL";
 
   const tabs = [
     { id: "ficha" as const, label: "Ficha", icon: FileText },
@@ -266,8 +298,6 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate, onLeadChanged }:
     { id: "notas" as const, label: "Notas", icon: FileText },
     { id: "tarefas" as const, label: "Tarefas", icon: CheckCircle2 },
   ];
-
-  const closerOptions = closers.map((c) => ({ value: c.user_id, label: c.full_name }));
 
   return (
     <>
@@ -302,7 +332,7 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate, onLeadChanged }:
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 scrollbar-thin">
           {activeTab === "ficha" && (
-            <LeadFichaTab lead={localLead} saveField={saveField} closerOptions={closerOptions} />
+            <LeadFichaTab lead={localLead} saveField={saveField} closerOptions={closerOptions} userId={user?.id} currencyCode={currencyCode} />
           )}
           {activeTab === "conversa" && <ConversationTab leadId={localLead.id} />}
           {activeTab === "notas" && <NotesTab leadId={localLead.id} />}
@@ -313,179 +343,119 @@ export function LeadDetailPanel({ lead, onClose, onFieldUpdate, onLeadChanged }:
   );
 }
 
-/* ═══════════════════════════════════════════ */
-/* ─── FICHA TAB (Main lead card) ─── */
-/* ═══════════════════════════════════════════ */
+/* ═════════════════════════════════════════════ */
+/* ─── FICHA TAB ─── */
+/* ═════════════════════════════════════════════ */
 function LeadFichaTab({
-  lead,
-  saveField,
-  closerOptions,
+  lead, saveField, closerOptions, userId, currencyCode,
 }: {
   lead: DBLead;
   saveField: (field: string, value: any) => void;
   closerOptions: { value: string; label: string }[];
+  userId?: string;
+  currencyCode: string;
 }) {
   return (
     <div className="space-y-4">
-      {/* 1 — Informações Básicas */}
+      {/* BLOCO 1 — Informações do Cliente */}
       <BlockSection title="Informações do Cliente" icon={Users}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <InlineField label="Nome" value={lead.name} onSave={(v) => saveField("name", v)} icon={Users} placeholder="Nome do cliente" />
-          <InlineField label="Telefone / WhatsApp" value={lead.phone} onSave={(v) => saveField("phone", v)} icon={Phone} placeholder="+55 11 99999-9999" />
-          <InlineField label="Email" value={lead.email} onSave={(v) => saveField("email", v)} icon={Mail} placeholder="email@exemplo.com" />
-          <InlineField label="Instagram" value={lead.instagram} onSave={(v) => {
-            const cleaned = v ? v.replace(/^@/, "") : null;
-            saveField("instagram", cleaned ? `@${cleaned}` : null);
-          }} icon={Instagram} placeholder="@usuario" />
-          <InlineField
-            label="País"
-            value={lead.country}
-            onSave={(v) => saveField("country", v)}
-            icon={Globe}
-            type="select"
-            options={countryOptions}
-            placeholder="Selecionar país..."
-          />
+          <AutoField label="Nome" value={lead.name} field="name" leadId={lead.id} userId={userId} onSave={saveField} icon={Users} placeholder="Nome do cliente" />
+          <AutoField label="Telefone / WhatsApp" value={lead.phone} field="phone" leadId={lead.id} userId={userId} onSave={saveField} icon={Phone} placeholder="+55 11 99999-9999" />
+          <AutoField label="Email" value={lead.email} field="email" leadId={lead.id} userId={userId} onSave={saveField} icon={Mail} placeholder="email@exemplo.com" />
+          <AutoField label="Instagram" value={lead.instagram} field="instagram" leadId={lead.id} userId={userId}
+            onSave={(f, v) => {
+              const cleaned = v ? String(v).replace(/^@/, "") : null;
+              saveField(f, cleaned ? `@${cleaned}` : null);
+            }} icon={Instagram} placeholder="@usuario" />
+          <AutoField label="País" value={lead.country} field="country" leadId={lead.id} userId={userId} onSave={saveField}
+            icon={Globe} type="select" options={countryOptions} placeholder="Selecionar país..." />
         </div>
       </BlockSection>
 
-      {/* 2 — Origem */}
+      {/* BLOCO 2 — Origem */}
       <BlockSection title="Origem do Lead" icon={Eye}>
-        <InlineField
-          label="Origem"
-          value={lead.source}
-          onSave={(v) => saveField("source", v)}
-          type="select"
-          options={sourceOptions}
-          placeholder="Selecionar origem..."
-        />
+        <AutoField label="Origem" value={lead.source} field="source" leadId={lead.id} userId={userId} onSave={saveField}
+          type="select" options={sourceOptions} placeholder="Selecionar origem..." />
       </BlockSection>
 
-      {/* 3 — Grupo */}
+      {/* BLOCO 3 — Grupo */}
       <BlockSection title="Informações do Grupo" icon={Users}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <InlineField label="Número do Grupo" value={lead.group_number} onSave={(v) => saveField("group_number", v)} placeholder="Ex: 001" />
-          <InlineField label="Link do Grupo" value={lead.group_link} onSave={(v) => saveField("group_link", v)} type="link" icon={Link2} placeholder="https://chat.whatsapp.com/..." />
+          <AutoField label="Número do Grupo" value={lead.group_number} field="group_number" leadId={lead.id} userId={userId} onSave={saveField} placeholder="Ex: 001" />
+          <AutoField label="Link do Grupo" value={lead.group_link} field="group_link" leadId={lead.id} userId={userId} onSave={saveField} type="link" icon={Link2} placeholder="https://chat.whatsapp.com/..." />
         </div>
       </BlockSection>
 
-      {/* 4 — Agendamento */}
+      {/* BLOCO 4 — Agendamento */}
       <BlockSection title="Agendamento" icon={CalendarDays}>
-        <InlineField
-          label="Data do Agendamento"
-          value={lead.scheduling_date}
-          onSave={(v) => saveField("scheduling_date", v)}
-          type="date"
-          icon={CalendarDays}
-        />
+        <AutoField label="Data do Agendamento" value={lead.scheduling_date} field="scheduling_date" leadId={lead.id} userId={userId} onSave={saveField} type="date" icon={CalendarDays} />
       </BlockSection>
 
-      {/* 5 — Comparecimento */}
+      {/* BLOCO 5 — Comparecimento */}
       <BlockSection title="Comparecimento" icon={CheckCircle2}>
         <CheckboxField
           label="Realizou a consultoria"
           checked={lead.consultation_done}
-          onChange={(v) => saveField("consultation_done", v)}
+          onChange={(v) => {
+            saveField("consultation_done", v);
+            if (v && userId) {
+              supabase.from("lead_activity_logs").insert({
+                lead_id: lead.id, user_id: userId, action: "call_attended",
+                field_changed: "consultation_done", old_value: "false", new_value: "true",
+              } as any).then(() => {});
+            }
+          }}
           icon={CheckCircle2}
         />
       </BlockSection>
 
-      {/* 6 — Closer + Resultado */}
+      {/* BLOCO 6 — Resultado */}
       <BlockSection title="Resultado da Consultoria" icon={DollarSign}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <InlineField
-            label="Closer Responsável"
-            value={lead.closer_id || null}
-            onSave={(v) => saveField("closer_id", v)}
-            type="select"
-            options={closerOptions}
-            placeholder="Selecionar closer..."
-          />
-          <InlineField
-            label="Vendeu?"
-            value={lead.sale_status}
-            onSave={(v) => saveField("sale_status", v)}
-            type="select"
-            options={saleStatusOptions}
-            placeholder="Status da venda..."
-          />
-          <InlineField
-            label="Valor da Venda"
-            value={lead.value_estimate != null ? String(lead.value_estimate) : null}
-            onSave={(v) => saveField("value_estimate", v ? Number(v) : null)}
-            icon={DollarSign}
-            placeholder="0.00"
-          />
-          <InlineField
-            label="Corresponde ao Mês"
-            value={lead.reference_month}
-            onSave={(v) => saveField("reference_month", v)}
-            type="select"
-            options={monthOptions}
-            placeholder="Selecionar mês..."
-            icon={Clock}
-          />
+          <AutoField label="Closer Responsável" value={lead.closer_id || null} field="closer_id" leadId={lead.id} userId={userId} onSave={saveField}
+            type="select" options={closerOptions} placeholder="Selecionar closer..." />
+          <AutoField label="Vendeu?" value={lead.sale_status} field="sale_status" leadId={lead.id} userId={userId} onSave={saveField}
+            type="select" options={saleStatusOptions} placeholder="Status da venda..." />
+          <AutoField label="Valor da Venda" value={lead.value_estimate != null ? String(lead.value_estimate) : null} field="value_estimate" leadId={lead.id} userId={userId}
+            onSave={(f, v) => saveField(f, v ? Number(v) : null)} icon={DollarSign} placeholder="0.00" type="currency" />
+          <AutoField label="Corresponde ao Mês" value={lead.reference_month} field="reference_month" leadId={lead.id} userId={userId} onSave={saveField}
+            type="select" options={monthOptions} placeholder="Selecionar mês..." icon={Clock} />
         </div>
       </BlockSection>
 
-      {/* 7 — Gravação */}
+      {/* BLOCO 7 — Gravação */}
       <BlockSection title="Gravação da Call" icon={Video}>
-        <InlineField
-          label="Link da Gravação"
-          value={lead.call_recording_link}
-          onSave={(v) => saveField("call_recording_link", v)}
-          type="link"
-          icon={Video}
-          placeholder="Cole o link da gravação..."
-        />
+        <AutoField label="Link da Gravação" value={lead.call_recording_link} field="call_recording_link" leadId={lead.id} userId={userId} onSave={saveField}
+          type="link" icon={Video} placeholder="Cole o link da gravação..." />
       </BlockSection>
 
-      {/* 8 — Resumo & Avaliação */}
+      {/* BLOCO 8 — Resumo & Avaliação */}
       <BlockSection title="Resumo & Avaliação" icon={Star}>
-        <InlineField
-          label="Resumo do Agendamento (IA)"
-          value={lead.scheduling_summary}
-          onSave={(v) => saveField("scheduling_summary", v)}
-          placeholder="O resumo será gerado automaticamente pela IA..."
-          multiline
-        />
-        <InlineField
-          label="Avaliação do SDR (IA)"
-          value={lead.sdr_evaluation}
-          onSave={(v) => saveField("sdr_evaluation", v)}
-          placeholder="A avaliação será gerada automaticamente..."
-          multiline
-        />
-        <InlineField
-          label="Nota de Qualificação"
-          value={lead.qualification_score}
-          onSave={(v) => saveField("qualification_score", v)}
-          type="select"
-          options={qualificationOptions}
-          icon={Star}
-          placeholder="Selecionar nota..."
-        />
-        <InlineField
-          label="Observações do SDR"
-          value={lead.sdr_observations}
-          onSave={(v) => saveField("sdr_observations", v)}
-          placeholder="Dificuldades, ideias, sugestões, feedbacks..."
-          multiline
-        />
-        <InlineField
-          label="Observações Gerais"
-          value={lead.observations}
-          onSave={(v) => saveField("observations", v)}
-          placeholder="Qualquer informação adicional relevante..."
-          multiline
-        />
+        <div className="p-2.5 rounded-md bg-muted/30 border border-border mb-2">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">Resumo do Agendamento (IA)</p>
+          <p className="text-sm text-muted-foreground italic">{lead.scheduling_summary || "Será preenchido automaticamente pela IA"}</p>
+        </div>
+        <div className="p-2.5 rounded-md bg-muted/30 border border-border mb-2">
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">Avaliação do SDR (IA)</p>
+          <p className="text-sm text-muted-foreground italic">{lead.sdr_evaluation || "Será gerado automaticamente"}</p>
+        </div>
+        <AutoField label="Nota de Qualificação" value={lead.qualification_score} field="qualification_score" leadId={lead.id} userId={userId} onSave={saveField}
+          type="select" options={qualificationOptions} icon={Star} placeholder="Selecionar nota..." />
+        <AutoField label="Observações do SDR" value={lead.sdr_observations} field="sdr_observations" leadId={lead.id} userId={userId} onSave={saveField}
+          placeholder="Dificuldades, ideias, sugestões, feedbacks..." multiline />
+        <AutoField label="Observações Gerais" value={lead.observations} field="observations" leadId={lead.id} userId={userId} onSave={saveField}
+          placeholder="Qualquer informação adicional relevante..." multiline />
       </BlockSection>
 
-      {/* Tags */}
+      {/* BLOCO 9 — Tags */}
       <TagsSection leadId={lead.id} tags={lead.tags} />
 
       {/* Follow-up */}
       <FollowupSection leadId={lead.id} />
+
+      {/* Activity Log */}
+      <ActivityLogSection leadId={lead.id} />
     </div>
   );
 }
@@ -507,7 +477,6 @@ function TagsSection({ leadId, tags }: { leadId: string; tags: string[] }) {
     const fetchTags = async () => {
       const { data: projectTags } = await supabase.from("tags").select("id, name, color").eq("project_id", currentProject.id);
       if (projectTags) setAllTags(projectTags);
-
       const { data: lt } = await supabase.from("lead_tags").select("id, tag_id").eq("lead_id", leadId);
       if (lt) setLeadTagIds(lt);
     };
@@ -595,42 +564,19 @@ function ConversationTab({ leadId }: { leadId: string }) {
   useEffect(() => {
     const fetchMessages = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("messages")
-        .select("id, content, direction, created_at, channel")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: true });
+      const { data } = await supabase.from("messages").select("id, content, direction, created_at, channel").eq("lead_id", leadId).order("created_at", { ascending: true });
       if (data) setMessages(data);
       setLoading(false);
     };
     fetchMessages();
   }, [leadId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim() || !user) return;
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        lead_id: leadId,
-        content: input,
-        direction: "outbound",
-        channel: "whatsapp",
-        sender_id: user.id,
-      })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setMessages(prev => [...prev, data]);
-      setInput("");
-      toast({ title: "Mensagem registrada" });
-    } else {
-      toast({ title: "Erro", description: "Não foi possível enviar.", variant: "destructive" });
-    }
+    const { data, error } = await supabase.from("messages").insert({ lead_id: leadId, content: input, direction: "outbound", channel: "whatsapp", sender_id: user.id }).select().single();
+    if (!error && data) { setMessages(prev => [...prev, data]); setInput(""); toast({ title: "Mensagem registrada" }); }
   };
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando mensagens...</p>;
@@ -642,9 +588,7 @@ function ConversationTab({ leadId }: { leadId: string }) {
         <div key={msg.id} className={`flex gap-2 ${msg.direction === "outbound" ? "justify-end" : ""}`}>
           <div className={`rounded-lg px-3 py-2 max-w-[85%] ${msg.direction === "outbound" ? "bg-primary/10 rounded-tr-none" : "bg-muted rounded-tl-none"}`}>
             <p className="text-sm text-foreground">{msg.content}</p>
-            <span className="text-[10px] text-muted-foreground mt-1 block">
-              {new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            </span>
+            <span className="text-[10px] text-muted-foreground mt-1 block">{new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
         </div>
       ))}
@@ -674,11 +618,7 @@ function NotesTab({ leadId }: { leadId: string }) {
   useEffect(() => {
     const fetchNotes = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("lead_notes")
-        .select("id, content, created_at")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("lead_notes").select("id, content, created_at").eq("lead_id", leadId).order("created_at", { ascending: false });
       if (data) setNotes(data);
       setLoading(false);
     };
@@ -688,19 +628,8 @@ function NotesTab({ leadId }: { leadId: string }) {
   const handleSave = async () => {
     if (!noteInput.trim() || !user) return;
     setSaving(true);
-    const { data, error } = await supabase
-      .from("lead_notes")
-      .insert({ lead_id: leadId, user_id: user.id, content: noteInput })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setNotes(prev => [data, ...prev]);
-      setNoteInput("");
-      toast({ title: "Nota salva" });
-    } else {
-      toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
-    }
+    const { data, error } = await supabase.from("lead_notes").insert({ lead_id: leadId, user_id: user.id, content: noteInput }).select().single();
+    if (!error && data) { setNotes(prev => [data, ...prev]); setNoteInput(""); toast({ title: "Nota salva" }); }
     setSaving(false);
   };
 
@@ -739,11 +668,7 @@ function TasksTab({ leadId }: { leadId: string }) {
   useEffect(() => {
     const fetchTasks = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("tasks")
-        .select("id, title, status")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("tasks").select("id, title, status").eq("lead_id", leadId).order("created_at", { ascending: false });
       if (data) setTasks(data);
       setLoading(false);
     };
@@ -752,17 +677,8 @@ function TasksTab({ leadId }: { leadId: string }) {
 
   const handleAdd = async () => {
     if (!taskInput.trim() || !user) return;
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({ lead_id: leadId, user_id: user.id, title: taskInput, status: "pending" })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setTasks(prev => [data, ...prev]);
-      setTaskInput("");
-      toast({ title: "Tarefa criada" });
-    }
+    const { data, error } = await supabase.from("tasks").insert({ lead_id: leadId, user_id: user.id, title: taskInput, status: "pending" }).select().single();
+    if (!error && data) { setTasks(prev => [data, ...prev]); setTaskInput(""); toast({ title: "Tarefa criada" }); }
   };
 
   const toggleTask = async (taskId: string) => {
@@ -807,18 +723,10 @@ function FollowupSection({ leadId }: { leadId: string }) {
   useEffect(() => {
     const fetchTasks = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("followup_tasks")
-        .select("id, due_at, status, message_id")
-        .eq("lead_id", leadId)
-        .order("due_at", { ascending: true }) as any;
-
+      const { data } = await supabase.from("followup_tasks").select("id, due_at, status, message_id").eq("lead_id", leadId).order("due_at", { ascending: true }) as any;
       if (data && data.length > 0) {
         const msgIds = data.map((t: any) => t.message_id);
-        const { data: msgs } = await supabase
-          .from("followup_messages")
-          .select("id, message_text")
-          .in("id", msgIds) as any;
+        const { data: msgs } = await supabase.from("followup_messages").select("id, message_text").in("id", msgIds) as any;
         const msgMap: Record<string, string> = {};
         (msgs || []).forEach((m: any) => { msgMap[m.id] = m.message_text; });
         setTasks(data.map((t: any) => ({ ...t, message_text: msgMap[t.message_id] || "" })));
@@ -866,21 +774,10 @@ function FollowupSection({ leadId }: { leadId: string }) {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (nextTask.message_text) navigator.clipboard.writeText(nextTask.message_text);
-                toast({ title: "Mensagem copiada" });
-              }}
-              className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted"
-            >
-              Copiar mensagem
-            </button>
-            <button
-              onClick={() => completeTask(nextTask.id)}
-              className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
-            >
-              Marcar como concluído
-            </button>
+            <button onClick={() => { if (nextTask.message_text) navigator.clipboard.writeText(nextTask.message_text); toast({ title: "Mensagem copiada" }); }}
+              className="h-7 px-2.5 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted">Copiar mensagem</button>
+            <button onClick={() => completeTask(nextTask.id)}
+              className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90">Marcar como concluído</button>
           </div>
         </div>
       )}
@@ -894,6 +791,69 @@ function FollowupSection({ leadId }: { leadId: string }) {
             </div>
           ))}
         </div>
+      )}
+    </BlockSection>
+  );
+}
+
+/* ═══════════════════════════════════════════ */
+/* ─── ACTIVITY LOG SECTION ─── */
+/* ═══════════════════════════════════════════ */
+function ActivityLogSection({ leadId }: { leadId: string }) {
+  const [logs, setLogs] = useState<{ id: string; action: string; field_changed: string | null; old_value: string | null; new_value: string | null; created_at: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("lead_activity_logs")
+        .select("id, action, field_changed, old_value, new_value, created_at")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false })
+        .limit(20) as any;
+      if (data) setLogs(data);
+      setLoading(false);
+    };
+    fetchLogs();
+  }, [leadId]);
+
+  if (loading || logs.length === 0) return null;
+
+  const fieldLabels: Record<string, string> = {
+    name: "Nome", phone: "Telefone", email: "Email", instagram: "Instagram",
+    country: "País", source: "Origem", group_number: "Nº Grupo", group_link: "Link Grupo",
+    scheduling_date: "Agendamento", consultation_done: "Consultoria", closer_id: "Closer",
+    sale_status: "Status Venda", value_estimate: "Valor", reference_month: "Mês Ref.",
+    call_recording_link: "Gravação", qualification_score: "Qualificação",
+    sdr_observations: "Obs. SDR", observations: "Observações",
+  };
+
+  return (
+    <BlockSection title="Histórico de Alterações" icon={Clock}>
+      <div className="space-y-1">
+        {(expanded ? logs : logs.slice(0, 5)).map(log => (
+          <div key={log.id} className="flex items-start gap-2 text-[11px] py-1">
+            <span className="text-muted-foreground shrink-0 w-[70px]">
+              {new Date(log.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} {new Date(log.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            <span className="text-foreground">
+              <span className="font-medium">{fieldLabels[log.field_changed || ""] || log.field_changed || log.action}</span>
+              {log.old_value && log.new_value && (
+                <span className="text-muted-foreground"> {log.old_value} → {log.new_value}</span>
+              )}
+              {!log.old_value && log.new_value && (
+                <span className="text-muted-foreground"> → {log.new_value}</span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+      {logs.length > 5 && (
+        <button onClick={() => setExpanded(!expanded)} className="text-[10px] text-primary hover:underline">
+          {expanded ? "Ver menos" : `Ver mais (${logs.length - 5})`}
+        </button>
       )}
     </BlockSection>
   );
