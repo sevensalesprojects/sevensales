@@ -144,51 +144,47 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Content */}
-      {viewMode === "kanban" ? (
-        <div className="flex-1 overflow-x-auto p-3 md:p-4">
-          <div className="flex gap-3 h-full min-w-max">
-            {stages.map((stage) => {
-              const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
-              return (
-                <div key={stage.id} className={`flex flex-col rounded-lg bg-muted/40 border border-border/50 ${isMobile ? "w-64" : "w-72"}`} onDragOver={(e) => e.preventDefault()} onDrop={() => handleDrop(stage.id)}>
-                  <div className="px-3 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
-                      <span className="text-sm font-medium text-foreground">{stage.name}</span>
-                      <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">{stageLeads.length}</span>
-                    </div>
-                  </div>
-                  <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto scrollbar-thin">
-                    {stageLeads.map((lead) => (
-                      <LeadCardDB key={lead.id} lead={lead} onDragStart={() => setDraggedLead(lead.id)} onClick={() => setSelectedLead(lead)} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+      {/* Content — List only */}
+      <div className="flex-1 overflow-auto p-3 md:p-4">
+        {isMobile ? (
+          <div className="space-y-2">
+            {filteredLeads.map((lead) => (
+              <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} />
+            ))}
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-auto p-3 md:p-4">
-          {isMobile ? (
-            <div className="space-y-2">
-              {filteredLeads.map((lead) => (
-                <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-card border border-border rounded-lg overflow-hidden">
-              <table className="w-full text-sm">
+        ) : (
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nome</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Telefone</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Origem</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Etapa</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tags</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valor</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ações</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Nome</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Telefone</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Email</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Instagram</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">País</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Origem</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Canal</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Etapa</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Tags</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Valor</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Qualificação</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Mês Ref.</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Grupo</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Nº Grupo</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Agendamento</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Resumo Agend.</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Consultoria</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Tempo Resp.</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Status Venda</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Avaliação SDR</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Obs. SDR</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Observações</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Gravação</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Google Cal.</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Criado em</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground">Atualizado</th>
+                    <th className="text-left px-3 py-3 font-medium text-muted-foreground sticky right-0 bg-muted/50">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -196,19 +192,39 @@ export default function LeadsPage() {
                     const stage = stages.find((s) => s.id === lead.stage_id);
                     return (
                       <tr key={lead.id} onClick={() => setSelectedLead(lead)} className="border-b border-border hover:bg-muted/30 cursor-pointer transition-colors">
-                        <td className="px-4 py-3 font-medium text-foreground">{lead.name}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{lead.phone || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{lead.source || "—"}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5 font-medium text-foreground">{lead.name}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.phone || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.email || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.instagram || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.country || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.source || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.channel || "—"}</td>
+                        <td className="px-3 py-2.5">
                           {stage ? <span className="inline-flex items-center gap-1.5 text-xs"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />{stage.name}</span> : "—"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5">
                           <div className="flex flex-wrap gap-1">
                             {lead.tags.map((tag) => <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColors[tag.toLowerCase()] || "bg-muted text-muted-foreground"}`}>{tag}</span>)}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5 text-foreground font-medium">{lead.value_estimate ? `R$ ${lead.value_estimate.toLocaleString("pt-BR")}` : "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.qualification_score || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.reference_month || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.group_link ? <a href={lead.group_link} target="_blank" rel="noreferrer" className="text-primary underline text-xs" onClick={e => e.stopPropagation()}>Link</a> : "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.group_number || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.scheduling_date ? new Date(lead.scheduling_date).toLocaleDateString("pt-BR") : "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground max-w-[150px] truncate">{lead.scheduling_summary || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.consultation_done ? "✅ Sim" : "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.response_time_minutes != null ? `${lead.response_time_minutes} min` : "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.sale_status || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.sdr_evaluation || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground max-w-[150px] truncate">{lead.sdr_observations || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground max-w-[150px] truncate">{lead.observations || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.call_recording_link ? <a href={lead.call_recording_link} target="_blank" rel="noreferrer" className="text-primary underline text-xs" onClick={e => e.stopPropagation()}>Link</a> : "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{lead.google_calendar_event_id || "—"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{new Date(lead.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{new Date(lead.updated_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2.5 sticky right-0 bg-card">
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => toast({ title: "Em breve", description: "Atribuição de SDR será disponibilizada em breve." })} className="w-7 h-7 rounded flex items-center justify-center hover:bg-muted" title="Atribuir SDR">
                               <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
@@ -227,9 +243,9 @@ export default function LeadsPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {selectedLead && <LeadDetailPanel lead={selectedLead} onClose={() => setSelectedLead(null)} onFieldUpdate={updateLeadField} />}
 
