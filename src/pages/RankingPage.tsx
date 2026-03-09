@@ -251,6 +251,20 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
           />
         </SectionCard>
       </div>
+
+      {/* Instagram Performance */}
+      <SectionCard title="Performance Instagram" icon={<Instagram className="w-4 h-4 text-pink-500" />}>
+        <RankingTable
+          columns={[
+            { key: "position", label: "#" },
+            { key: "name", label: "SDR" },
+            { key: "igOutbound", label: "Enviadas", icon: <MessageSquare className="w-3.5 h-3.5 text-pink-500" /> },
+            { key: "igInbound", label: "Recebidas", icon: <MessageSquare className="w-3.5 h-3.5 text-blue-500" /> },
+            { key: "avgResponseFmt", label: "Tempo Resposta", icon: <Clock className="w-3.5 h-3.5 text-orange-500" /> },
+          ]}
+          data={[...sdrStats].sort((a, b) => b.igOutbound - a.igOutbound)}
+        />
+      </SectionCard>
     </div>
   );
 }

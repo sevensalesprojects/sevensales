@@ -489,6 +489,7 @@ function FollowupSettings() {
     { value: "call_no_purchase", label: "Lead não comprou" },
     { value: "lead_created", label: "Lead criado" },
     { value: "first_message_sent", label: "Primeira mensagem enviada" },
+    { value: "instagram_message_received", label: "Mensagem Instagram recebida" },
   ];
 
   const handleCreate = async () => {
