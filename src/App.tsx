@@ -20,6 +20,7 @@ import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AgendaPage from "@/pages/AgendaPage";
 import LoginPage from "@/pages/LoginPage";
+import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
