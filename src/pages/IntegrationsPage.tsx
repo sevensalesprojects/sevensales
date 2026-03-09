@@ -29,13 +29,18 @@ export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [webhookEvents, setWebhookEvents] = useState<any[]>([]);
+  const [igAccountCount, setIgAccountCount] = useState(0);
 
   useEffect(() => {
     if (!currentProject) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data } = await supabase.from("integrations").select("*").eq("project_id", currentProject.id);
+      const [{ data }, { count }] = await Promise.all([
+        supabase.from("integrations").select("*").eq("project_id", currentProject.id),
+        supabase.from("instagram_accounts").select("*", { count: "exact", head: true }).eq("project_id", currentProject.id).eq("status", "active"),
+      ]);
       setIntegrations(data || []);
+      setIgAccountCount(count || 0);
 
       // Fetch recent webhook events
       const intIds = (data || []).map(i => i.id);
@@ -45,7 +50,7 @@ export default function IntegrationsPage() {
       }
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [currentProject?.id]);
 
   // Show default types if not present in DB
