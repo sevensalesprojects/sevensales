@@ -83,14 +83,13 @@ Deno.serve(async (req) => {
 
     // Send message via Meta Graph API
     const graphRes = await fetch(
-      `https://graph.facebook.com/v19.0/${igAccount.instagram_user_id}/messages`,
+      `https://graph.facebook.com/v19.0/${igAccount.instagram_user_id}/messages?access_token=${encodeURIComponent(igAccount.access_token)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipient: { id: lead.instagram },
           message: { text: content },
-          access_token: igAccount.access_token,
         }),
       }
     );
