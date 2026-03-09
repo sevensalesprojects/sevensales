@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, TrendingUp, MessageSquare, Calendar, Phone, DollarSign, Target, Award } from "lucide-react";
+import { Trophy, TrendingUp, MessageSquare, Calendar, Phone, DollarSign, Target, Award, Instagram, Clock } from "lucide-react";
 import { useProject } from "@/contexts/ProjectContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
