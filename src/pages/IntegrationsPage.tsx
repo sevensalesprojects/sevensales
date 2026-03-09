@@ -29,13 +29,18 @@ export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [webhookEvents, setWebhookEvents] = useState<any[]>([]);
+  const [igAccountCount, setIgAccountCount] = useState(0);
 
   useEffect(() => {
     if (!currentProject) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const { data } = await supabase.from("integrations").select("*").eq("project_id", currentProject.id);
+      const [{ data }, { count }] = await Promise.all([
+        supabase.from("integrations").select("*").eq("project_id", currentProject.id),
+        supabase.from("instagram_accounts").select("*", { count: "exact", head: true }).eq("project_id", currentProject.id).eq("status", "active"),
+      ]);
       setIntegrations(data || []);
+      setIgAccountCount(count || 0);
 
       // Fetch recent webhook events
       const intIds = (data || []).map(i => i.id);
@@ -45,7 +50,7 @@ export default function IntegrationsPage() {
       }
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [currentProject?.id]);
 
   // Show default types if not present in DB
@@ -53,10 +58,17 @@ export default function IntegrationsPage() {
   const displayIntegrations = allTypes.map(type => {
     const dbInt = integrations.find(i => i.type === type);
     const config = typeConfig[type] || { name: type, description: "", icon: Plug, iconColor: "text-muted-foreground", iconBg: "bg-muted" };
+    
+    // For Instagram, derive status from instagram_accounts table
+    let status = dbInt?.status || "disconnected";
+    if (type === "instagram" && igAccountCount > 0) {
+      status = "connected";
+    }
+    
     return {
       id: dbInt?.id || type,
       type,
-      status: dbInt?.status || "disconnected",
+      status,
       config_json: dbInt?.config_json || {},
       updated_at: dbInt?.updated_at || "",
       ...config,
@@ -92,14 +104,19 @@ export default function IntegrationsPage() {
                      <><WifiOff className="w-3 h-3" /> Desconectado</>}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">{int.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {int.description}
+                  {int.type === "instagram" && igAccountCount > 0 && <span className="ml-1 font-medium text-success"> · {igAccountCount} conta{igAccountCount > 1 ? "s" : ""} ativa{igAccountCount > 1 ? "s" : ""}</span>}
+                </p>
                 {int.updated_at && <p className="text-[10px] text-muted-foreground mt-1">Último sync: {new Date(int.updated_at).toLocaleString("pt-BR")}</p>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {int.status === "connected" ? (
                   <>
+                    {int.type === "instagram" && (
+                      <button onClick={() => navigate("/integrations/instagram")} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors"><Settings className="w-3.5 h-3.5" /> Gerenciar</button>
+                    )}
                     <button onClick={() => toast({ title: "Teste OK", description: "Conexão verificada com sucesso." })} className="h-8 px-3 rounded-md border border-input text-xs text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors"><RefreshCw className="w-3.5 h-3.5" /> Testar</button>
-                    <button onClick={() => toast({ title: "Em breve", description: "Desconexão será disponibilizada em breve.", variant: "destructive" })} className="h-8 px-3 rounded-md border border-destructive/30 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1.5 transition-colors"><WifiOff className="w-3.5 h-3.5" /> Desconectar</button>
                   </>
                 ) : (
                   <button onClick={() => {
