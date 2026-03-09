@@ -348,6 +348,53 @@ export type Database = {
           },
         ]
       }
+      instagram_accounts: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          instagram_user_id: string
+          page_id: string | null
+          project_id: string
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          instagram_user_id: string
+          page_id?: string | null
+          project_id: string
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          instagram_user_id?: string
+          page_id?: string | null
+          project_id?: string
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_accounts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integrations: {
         Row: {
           config_json: Json
@@ -620,8 +667,10 @@ export type Database = {
           created_at: string
           direction: string
           id: string
+          instagram_message_id: string | null
           lead_id: string
           media_url: string | null
+          project_id: string | null
           sender_id: string | null
         }
         Insert: {
@@ -630,8 +679,10 @@ export type Database = {
           created_at?: string
           direction: string
           id?: string
+          instagram_message_id?: string | null
           lead_id: string
           media_url?: string | null
+          project_id?: string | null
           sender_id?: string | null
         }
         Update: {
@@ -640,8 +691,10 @@ export type Database = {
           created_at?: string
           direction?: string
           id?: string
+          instagram_message_id?: string | null
           lead_id?: string
           media_url?: string | null
+          project_id?: string | null
           sender_id?: string | null
         }
         Relationships: [
@@ -650,6 +703,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
