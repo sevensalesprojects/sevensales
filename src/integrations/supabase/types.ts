@@ -541,6 +541,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          avatar_url: string | null
           call_recording_link: string | null
           channel: string | null
           closer_id: string | null
@@ -554,6 +555,7 @@ export type Database = {
           group_number: string | null
           id: string
           instagram: string | null
+          instagram_username: string | null
           name: string
           observations: string | null
           phone: string | null
@@ -573,6 +575,7 @@ export type Database = {
           value_estimate: number | null
         }
         Insert: {
+          avatar_url?: string | null
           call_recording_link?: string | null
           channel?: string | null
           closer_id?: string | null
@@ -586,6 +589,7 @@ export type Database = {
           group_number?: string | null
           id?: string
           instagram?: string | null
+          instagram_username?: string | null
           name: string
           observations?: string | null
           phone?: string | null
@@ -605,6 +609,7 @@ export type Database = {
           value_estimate?: number | null
         }
         Update: {
+          avatar_url?: string | null
           call_recording_link?: string | null
           channel?: string | null
           closer_id?: string | null
@@ -618,6 +623,7 @@ export type Database = {
           group_number?: string | null
           id?: string
           instagram?: string | null
+          instagram_username?: string | null
           name?: string
           observations?: string | null
           phone?: string | null
