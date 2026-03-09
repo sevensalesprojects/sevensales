@@ -200,5 +200,77 @@ async function processMessage(supabase: any, event: any) {
     metadata: { sender_id: senderId, mid: midId },
   });
 
+  // 6. Fire automations with trigger "instagram_message_received"
+  try {
+    const { data: automations } = await supabase
+      .from("automations")
+      .select("id, name, action_type, action_config")
+      .eq("project_id", projectId)
+      .eq("trigger_type", "instagram_message_received")
+      .eq("is_active", true);
+
+    for (const auto of automations || []) {
+      console.log(`⚡ Firing automation: ${auto.name} for lead ${lead.id}`);
+      
+      // Create a followup task if action is assign_followup
+      if (auto.action_type === "create_task" || auto.action_type === "assign_followup") {
+        await supabase.from("system_logs").insert({
+          action: "automation_triggered",
+          project_id: projectId,
+          entity_type: "automation",
+          entity_id: auto.id,
+          metadata: { lead_id: lead.id, automation_name: auto.name, trigger: "instagram_message_received" },
+        });
+      }
+
+      // Send auto-reply if action is send_message
+      if (auto.action_type === "send_message") {
+        const replyText = (auto.action_config as any)?.message || "";
+        if (replyText) {
+          // Find instagram account for this project to send reply
+          const { data: igAcc } = await supabase
+            .from("instagram_accounts")
+            .select("instagram_user_id, access_token")
+            .eq("project_id", projectId)
+            .eq("status", "active")
+            .limit(1)
+            .single();
+
+          if (igAcc?.access_token) {
+            try {
+              const sendRes = await fetch(
+                `https://graph.facebook.com/v19.0/${igAcc.instagram_user_id}/messages`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    recipient: { id: senderId },
+                    message: { text: replyText },
+                  }),
+                }
+              );
+              const sendData = await sendRes.json();
+              
+              if (sendRes.ok) {
+                await supabase.from("messages").insert({
+                  lead_id: lead.id,
+                  project_id: projectId,
+                  channel: "instagram",
+                  direction: "outbound",
+                  content: replyText,
+                  instagram_message_id: sendData.message_id || null,
+                });
+              }
+            } catch (e) {
+              console.error("❌ Auto-reply failed:", e);
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("❌ Automation execution error:", e);
+  }
+
   console.log("✅ Instagram message processed for lead:", lead.id);
 }

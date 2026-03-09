@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, TrendingUp, MessageSquare, Calendar, Phone, DollarSign, Target, Award } from "lucide-react";
+import { Trophy, TrendingUp, MessageSquare, Calendar, Phone, DollarSign, Target, Award, Instagram, Clock } from "lucide-react";
 import { useProject } from "@/contexts/ProjectContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -115,6 +115,27 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
       const retornos = messages.filter(m => m.direction === "inbound" && sdrLeads.some(l => l.id === m.lead_id)).length;
       const agendamentos = callsAgendadas;
 
+      // Instagram-specific metrics
+      const igInbound = messages.filter(m => m.direction === "inbound" && m.channel === "instagram" && sdrLeads.some(l => l.id === m.lead_id)).length;
+      const igOutbound = sdrMessages.filter(m => m.direction === "outbound" && m.channel === "instagram").length;
+
+      // Calculate avg response time for Instagram (outbound replies after inbound)
+      const sdrLeadIds = new Set(sdrLeads.map(l => l.id));
+      const igMsgs = messages
+        .filter(m => m.channel === "instagram" && sdrLeadIds.has(m.lead_id))
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      
+      let totalResponseMs = 0;
+      let responseCount = 0;
+      for (let i = 1; i < igMsgs.length; i++) {
+        if (igMsgs[i].direction === "outbound" && igMsgs[i - 1].direction === "inbound" && igMsgs[i].lead_id === igMsgs[i - 1].lead_id) {
+          totalResponseMs += new Date(igMsgs[i].created_at).getTime() - new Date(igMsgs[i - 1].created_at).getTime();
+          responseCount++;
+        }
+      }
+      const avgResponseMin = responseCount > 0 ? Math.round(totalResponseMs / responseCount / 60000) : 0;
+      const avgResponseFmt = responseCount > 0 ? (avgResponseMin < 60 ? `${avgResponseMin}min` : `${Math.round(avgResponseMin / 60)}h${avgResponseMin % 60}min`) : "—";
+
       return {
         userId,
         name: getUserName(profiles, userId),
@@ -128,6 +149,10 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
         totalDisparos,
         retornos,
         agendamentos,
+        igInbound,
+        igOutbound,
+        avgResponseMin,
+        avgResponseFmt,
         taxaRealizacao: pct(callsRealizadas, callsAgendadas),
         taxaConversao: pct(vendas, callsRealizadas),
         taxaResposta: pct(retornos, totalDisparos),
@@ -226,6 +251,20 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
           />
         </SectionCard>
       </div>
+
+      {/* Instagram Performance */}
+      <SectionCard title="Performance Instagram" icon={<Instagram className="w-4 h-4 text-pink-500" />}>
+        <RankingTable
+          columns={[
+            { key: "position", label: "#" },
+            { key: "name", label: "SDR" },
+            { key: "igOutbound", label: "Enviadas", icon: <MessageSquare className="w-3.5 h-3.5 text-pink-500" /> },
+            { key: "igInbound", label: "Recebidas", icon: <MessageSquare className="w-3.5 h-3.5 text-blue-500" /> },
+            { key: "avgResponseFmt", label: "Tempo Resposta", icon: <Clock className="w-3.5 h-3.5 text-orange-500" /> },
+          ]}
+          data={[...sdrStats].sort((a, b) => b.igOutbound - a.igOutbound)}
+        />
+      </SectionCard>
     </div>
   );
 }
