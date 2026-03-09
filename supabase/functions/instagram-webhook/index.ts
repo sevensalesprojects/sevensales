@@ -115,6 +115,7 @@ async function processMessage(supabase: any, event: any) {
     // Fetch Instagram profile info (best effort)
     let profileName = `Instagram ${senderId}`;
     let username = null;
+    let profilePicUrl = null;
 
     const account = await supabase
       .from("instagram_accounts")
@@ -131,6 +132,7 @@ async function processMessage(supabase: any, event: any) {
           const profile = await profileRes.json();
           profileName = profile.name || profileName;
           username = profile.username || null;
+          profilePicUrl = profile.profile_pic || null;
         }
       } catch {
         // Ignore profile fetch errors
@@ -143,6 +145,8 @@ async function processMessage(supabase: any, event: any) {
         project_id: projectId,
         name: profileName,
         instagram: senderId,
+        instagram_username: username,
+        avatar_url: profilePicUrl,
         source: "instagram",
         channel: "instagram",
       })
@@ -157,8 +161,35 @@ async function processMessage(supabase: any, event: any) {
       project_id: projectId,
       entity_type: "lead",
       entity_id: lead?.id,
-      metadata: { instagram_user_id: senderId, username },
+      metadata: { instagram_user_id: senderId, username, profile_pic: profilePicUrl },
     });
+  } else {
+    // Update existing lead profile info (best effort, keep data fresh)
+    const account = await supabase
+      .from("instagram_accounts")
+      .select("access_token")
+      .eq("id", igAccount.id)
+      .single();
+
+    if (account.data?.access_token) {
+      try {
+        const profileRes = await fetch(
+          `https://graph.facebook.com/v19.0/${senderId}?fields=name,username,profile_pic&access_token=${account.data.access_token}`
+        );
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          const updates: Record<string, string> = {};
+          if (profile.name) updates.name = profile.name;
+          if (profile.username) updates.instagram_username = profile.username;
+          if (profile.profile_pic) updates.avatar_url = profile.profile_pic;
+          if (Object.keys(updates).length > 0) {
+            await supabase.from("leads").update(updates).eq("id", lead.id);
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
   }
 
   if (!lead) {
