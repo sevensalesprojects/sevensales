@@ -24,6 +24,7 @@ const typeConfig: Record<string, { name: string; description: string; icon: Reac
 };
 
 export default function IntegrationsPage() {
+  const navigate = useNavigate();
   const { currentProject } = useProject();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
