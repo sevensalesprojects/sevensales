@@ -150,6 +150,34 @@ export default function ConversationsPage() {
       setMessages(data || []);
     };
     loadMessages();
+
+    // Realtime subscription for new messages
+    const channel = supabase
+      .channel(`messages-${selectedConversation.leadId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `lead_id=eq.${selectedConversation.leadId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as DBMessage;
+          setMessages(prev => {
+            // Avoid duplicates (from optimistic update)
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            // Remove temp messages with same content
+            const filtered = prev.filter(m => !m.id.startsWith("temp-") || m.content !== newMsg.content);
+            return [...filtered, newMsg];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedConversation?.leadId]);
 
   // Ficha lead
@@ -168,20 +196,45 @@ export default function ConversationsPage() {
 
   const handleSend = async () => {
     if (!messageInput.trim() || !selectedConversation || !user) return;
-    const { error } = await supabase.from("messages").insert({
-      lead_id: selectedConversation.leadId,
-      content: messageInput,
-      direction: "outbound",
-      channel: selectedConversation.channel,
-      sender_id: user.id,
-    });
-    if (!error) {
-      setMessages(prev => [...prev, {
-        id: `temp-${Date.now()}`, content: messageInput, direction: "outbound",
-        channel: selectedConversation.channel, created_at: new Date().toISOString(), sender_id: user.id,
-      }]);
-      setMessageInput("");
+    const content = messageInput;
+    setMessageInput("");
+
+    if (selectedConversation.channel === "instagram") {
+      // Send via edge function (Meta Graph API)
+      const { data, error } = await supabase.functions.invoke("instagram-send", {
+        body: {
+          lead_id: selectedConversation.leadId,
+          content,
+          project_id: currentProject?.id,
+        },
+      });
+      if (error) {
+        toast({ title: "Erro ao enviar", description: "Não foi possível enviar a mensagem no Instagram.", variant: "destructive" });
+        setMessageInput(content);
+        return;
+      }
+      // Message will appear via realtime subscription
+    } else {
+      // WhatsApp / other: direct insert
+      const { error } = await supabase.from("messages").insert({
+        lead_id: selectedConversation.leadId,
+        content,
+        direction: "outbound",
+        channel: selectedConversation.channel,
+        sender_id: user.id,
+      });
+      if (error) {
+        toast({ title: "Erro ao enviar", description: "Não foi possível enviar a mensagem.", variant: "destructive" });
+        setMessageInput(content);
+        return;
+      }
     }
+
+    // Optimistic update
+    setMessages(prev => [...prev, {
+      id: `temp-${Date.now()}`, content, direction: "outbound",
+      channel: selectedConversation.channel, created_at: new Date().toISOString(), sender_id: user.id,
+    }]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
