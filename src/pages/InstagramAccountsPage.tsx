@@ -251,7 +251,6 @@ export default function InstagramAccountsPage() {
         description="Tem certeza que deseja remover esta conta? As mensagens já recebidas serão mantidas."
         onConfirm={handleDelete}
         confirmLabel="Remover"
-        variant="destructive"
       />
     </div>
   );
