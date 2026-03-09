@@ -82,6 +82,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route
               path="/*"
               element={
