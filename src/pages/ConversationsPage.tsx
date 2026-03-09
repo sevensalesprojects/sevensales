@@ -74,6 +74,7 @@ export default function ConversationsPage() {
       const { data: recentMessages } = await supabase
         .from("messages")
         .select("lead_id, content, channel, created_at, direction")
+        .eq("project_id", currentProject.id)
         .order("created_at", { ascending: false })
         .limit(200);
 

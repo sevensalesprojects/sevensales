@@ -16,15 +16,11 @@ export function useIntegrationHealth() {
   const fetchStatuses = useCallback(async () => {
     if (!currentProject) { setStatuses([]); setLoading(false); return; }
 
-    const { data: integrations } = await supabase
-      .from("integrations")
-      .select("type, status")
-      .eq("project_id", currentProject.id);
-
-    const { data: whatsappSessions } = await supabase
-      .from("whatsapp_sessions")
-      .select("status")
-      .eq("project_id", currentProject.id);
+    const [{ data: integrations }, { data: whatsappSessions }, { count: igActiveCount }] = await Promise.all([
+      supabase.from("integrations").select("type, status").eq("project_id", currentProject.id),
+      supabase.from("whatsapp_sessions").select("status").eq("project_id", currentProject.id),
+      supabase.from("instagram_accounts").select("*", { count: "exact", head: true }).eq("project_id", currentProject.id).eq("status", "active"),
+    ]);
 
     const results: IntegrationStatus[] = [];
 
@@ -37,11 +33,11 @@ export function useIntegrationHealth() {
       label: "WhatsApp",
     });
 
-    // Instagram
-    const instagramInt = integrations?.find(i => i.type === "instagram");
+    // Instagram — derive from instagram_accounts table
+    const igConnected = (igActiveCount || 0) > 0;
     results.push({
       type: "instagram",
-      status: instagramInt?.status || "disconnected",
+      status: igConnected ? "connected" : "disconnected",
       label: "Instagram",
     });
 
