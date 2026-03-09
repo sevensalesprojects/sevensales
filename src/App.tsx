@@ -96,6 +96,7 @@ const App = () => (
                     <Route path="/onboarding" element={<OnboardingPage />} />
                     <Route path="/agenda" element={<AgendaPage />} />
                     <Route path="/integrations" element={<IntegrationsPage />} />
+                    <Route path="/integrations/instagram" element={<InstagramAccountsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<NotFound />} />
