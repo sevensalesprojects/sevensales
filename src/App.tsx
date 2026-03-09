@@ -15,6 +15,7 @@ import ClosersPage from "@/pages/ClosersPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import RankingPage from "@/pages/RankingPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
+import InstagramAccountsPage from "@/pages/InstagramAccountsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import AgendaPage from "@/pages/AgendaPage";
@@ -95,6 +96,7 @@ const App = () => (
                     <Route path="/onboarding" element={<OnboardingPage />} />
                     <Route path="/agenda" element={<AgendaPage />} />
                     <Route path="/integrations" element={<IntegrationsPage />} />
+                    <Route path="/integrations/instagram" element={<InstagramAccountsPage />} />
                     <Route path="/users" element={<UsersPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<NotFound />} />

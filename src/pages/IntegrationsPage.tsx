@@ -7,6 +7,7 @@ import {
   Settings, RefreshCw, CheckCircle2, XCircle, QrCode,
   ExternalLink, Plug, Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Integration {
   id: string;
@@ -23,6 +24,7 @@ const typeConfig: Record<string, { name: string; description: string; icon: Reac
 };
 
 export default function IntegrationsPage() {
+  const navigate = useNavigate();
   const { currentProject } = useProject();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,8 +102,14 @@ export default function IntegrationsPage() {
                     <button onClick={() => toast({ title: "Em breve", description: "Desconexão será disponibilizada em breve.", variant: "destructive" })} className="h-8 px-3 rounded-md border border-destructive/30 text-xs text-destructive hover:bg-destructive/10 flex items-center gap-1.5 transition-colors"><WifiOff className="w-3.5 h-3.5" /> Desconectar</button>
                   </>
                 ) : (
-                  <button onClick={() => toast({ title: "Em breve", description: `Conexão com ${int.name} será disponibilizada em breve.` })} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-                    {int.type === "whatsapp" ? <QrCode className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />} Conectar
+                  <button onClick={() => {
+                    if (int.type === "instagram") {
+                      navigate("/integrations/instagram");
+                    } else {
+                      toast({ title: "Em breve", description: `Conexão com ${int.name} será disponibilizada em breve.` });
+                    }
+                  }} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+                    {int.type === "whatsapp" ? <QrCode className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />} {int.type === "instagram" ? "Configurar" : "Conectar"}
                   </button>
                 )}
               </div>
