@@ -58,10 +58,17 @@ export default function IntegrationsPage() {
   const displayIntegrations = allTypes.map(type => {
     const dbInt = integrations.find(i => i.type === type);
     const config = typeConfig[type] || { name: type, description: "", icon: Plug, iconColor: "text-muted-foreground", iconBg: "bg-muted" };
+    
+    // For Instagram, derive status from instagram_accounts table
+    let status = dbInt?.status || "disconnected";
+    if (type === "instagram" && igAccountCount > 0) {
+      status = "connected";
+    }
+    
     return {
       id: dbInt?.id || type,
       type,
-      status: dbInt?.status || "disconnected",
+      status,
       config_json: dbInt?.config_json || {},
       updated_at: dbInt?.updated_at || "",
       ...config,
