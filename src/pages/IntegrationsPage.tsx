@@ -7,6 +7,7 @@ import {
   Settings, RefreshCw, CheckCircle2, XCircle, QrCode,
   ExternalLink, Plug, Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Integration {
   id: string;
