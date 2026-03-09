@@ -150,6 +150,34 @@ export default function ConversationsPage() {
       setMessages(data || []);
     };
     loadMessages();
+
+    // Realtime subscription for new messages
+    const channel = supabase
+      .channel(`messages-${selectedConversation.leadId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `lead_id=eq.${selectedConversation.leadId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as DBMessage;
+          setMessages(prev => {
+            // Avoid duplicates (from optimistic update)
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            // Remove temp messages with same content
+            const filtered = prev.filter(m => !m.id.startsWith("temp-") || m.content !== newMsg.content);
+            return [...filtered, newMsg];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedConversation?.leadId]);
 
   // Ficha lead
