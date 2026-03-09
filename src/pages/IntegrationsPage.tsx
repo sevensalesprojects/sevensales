@@ -104,7 +104,10 @@ export default function IntegrationsPage() {
                      <><WifiOff className="w-3 h-3" /> Desconectado</>}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">{int.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {int.description}
+                  {int.type === "instagram" && igAccountCount > 0 && <span className="ml-1 font-medium text-success"> · {igAccountCount} conta{igAccountCount > 1 ? "s" : ""} ativa{igAccountCount > 1 ? "s" : ""}</span>}
+                </p>
                 {int.updated_at && <p className="text-[10px] text-muted-foreground mt-1">Último sync: {new Date(int.updated_at).toLocaleString("pt-BR")}</p>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
