@@ -115,6 +115,27 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
       const retornos = messages.filter(m => m.direction === "inbound" && sdrLeads.some(l => l.id === m.lead_id)).length;
       const agendamentos = callsAgendadas;
 
+      // Instagram-specific metrics
+      const igInbound = messages.filter(m => m.direction === "inbound" && m.channel === "instagram" && sdrLeads.some(l => l.id === m.lead_id)).length;
+      const igOutbound = sdrMessages.filter(m => m.direction === "outbound" && m.channel === "instagram").length;
+
+      // Calculate avg response time for Instagram (outbound replies after inbound)
+      const sdrLeadIds = new Set(sdrLeads.map(l => l.id));
+      const igMsgs = messages
+        .filter(m => m.channel === "instagram" && sdrLeadIds.has(m.lead_id))
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      
+      let totalResponseMs = 0;
+      let responseCount = 0;
+      for (let i = 1; i < igMsgs.length; i++) {
+        if (igMsgs[i].direction === "outbound" && igMsgs[i - 1].direction === "inbound" && igMsgs[i].lead_id === igMsgs[i - 1].lead_id) {
+          totalResponseMs += new Date(igMsgs[i].created_at).getTime() - new Date(igMsgs[i - 1].created_at).getTime();
+          responseCount++;
+        }
+      }
+      const avgResponseMin = responseCount > 0 ? Math.round(totalResponseMs / responseCount / 60000) : 0;
+      const avgResponseFmt = responseCount > 0 ? (avgResponseMin < 60 ? `${avgResponseMin}min` : `${Math.round(avgResponseMin / 60)}h${avgResponseMin % 60}min`) : "—";
+
       return {
         userId,
         name: getUserName(profiles, userId),
@@ -128,6 +149,10 @@ function SDRRanking({ projectId, period }: { projectId: string | undefined; peri
         totalDisparos,
         retornos,
         agendamentos,
+        igInbound,
+        igOutbound,
+        avgResponseMin,
+        avgResponseFmt,
         taxaRealizacao: pct(callsRealizadas, callsAgendadas),
         taxaConversao: pct(vendas, callsRealizadas),
         taxaResposta: pct(retornos, totalDisparos),
