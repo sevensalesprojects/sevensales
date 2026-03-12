@@ -566,6 +566,7 @@ export default function LeadsPage() {
         </>
       )}
 
+      {selectedLead && (
         <LeadDetailPanel
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
