@@ -635,9 +635,15 @@ export default function LeadsPage() {
   );
 }
 
-function LeadCardDB({ lead, onDragStart, onClick, currencyCode }: { lead: DBLead; onDragStart: () => void; onClick: () => void; currencyCode: string }) {
+function LeadCardDB({ lead, onDragStart, onClick, onContextMenu, currencyCode }: { lead: DBLead; onDragStart: () => void; onClick: () => void; onContextMenu?: (e: React.MouseEvent) => void; currencyCode: string }) {
   return (
-    <div draggable onDragStart={onDragStart} onClick={onClick} className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group"
+    >
       <div className="flex items-start justify-between mb-2">
         <p className="text-sm font-medium text-card-foreground leading-tight">{lead.name}</p>
         {lead.value_estimate && <span className="text-xs font-semibold text-primary">{formatCurrency(lead.value_estimate, currencyCode)}</span>}
