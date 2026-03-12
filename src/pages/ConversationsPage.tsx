@@ -373,7 +373,7 @@ export default function ConversationsPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-3 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-3 md:p-5 space-y-3 scrollbar-thin" ref={messagesContainerRef}>
             {messages.map(msg => (
               <div key={msg.id} className={`flex gap-2 ${msg.direction === "outbound" ? "justify-end" : ""}`}>
                 {msg.direction === "inbound" && (
@@ -383,13 +383,23 @@ export default function ConversationsPage() {
                 )}
                 <div className={`rounded-lg px-3 py-2 max-w-[80%] ${msg.direction === "inbound" ? "bg-muted rounded-tl-none" : "bg-primary/10 rounded-tr-none"}`}>
                   <p className="text-sm text-foreground">{msg.content}</p>
-                  <span className="text-[10px] text-muted-foreground mt-1 block">
-                    {new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · {msg.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
-                  </span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(msg.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · {msg.channel === "whatsapp" ? "WhatsApp" : "Instagram"}
+                    </span>
+                    {msg.id.startsWith("temp-") && <span className="text-[10px] text-muted-foreground">⏳</span>}
+                  </div>
                 </div>
               </div>
             ))}
-            {messages.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhuma mensagem nesta conversa.</p>}
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full gap-2 py-8">
+                <MessageCircle className="w-8 h-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground text-center">Nenhuma conversa ainda.</p>
+                <p className="text-xs text-muted-foreground text-center">Quando um cliente enviar uma mensagem pelo Instagram ou WhatsApp, ela aparecerá aqui.</p>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="px-3 md:px-5 py-3 border-t border-border shrink-0">
