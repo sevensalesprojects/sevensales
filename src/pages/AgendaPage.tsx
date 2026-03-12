@@ -28,6 +28,7 @@ interface Call {
   duration_minutes: number | null;
   sdr_id: string | null;
   closer_id: string | null;
+  meeting_url?: string | null;
   lead_name?: string;
   lead_phone?: string;
 }
