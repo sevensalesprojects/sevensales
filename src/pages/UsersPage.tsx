@@ -56,6 +56,8 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<DBUser | null>(null);
   const [showRolesDialog, setShowRolesDialog] = useState<DBUser | null>(null);
+  const [showNewUser, setShowNewUser] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({ full_name: "", email: "", phone: "", role: "sdr" as AppRole });
 
   useEffect(() => { fetchUsers(); }, []);
 
