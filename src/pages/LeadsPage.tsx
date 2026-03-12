@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useFunnels } from "@/hooks/useFunnels";
 import { useLeads, DBLead } from "@/hooks/useLeads";
 import { useProject } from "@/contexts/ProjectContext";
@@ -10,12 +10,14 @@ import { TransferLeadDialog } from "@/components/TransferLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ImportLeadsDialog } from "@/components/ImportLeadsDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent, saveDeletedRecord } from "@/hooks/useSystemLog";
 import { formatCurrency } from "@/lib/currency";
 import {
   Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
   Loader2, Phone, MessageCircle, Pencil, Tag, CheckSquare, Square, MinusSquare,
+  LayoutGrid, List, SlidersHorizontal,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -38,7 +40,14 @@ export default function LeadsPage() {
   const { user } = useAuth();
   const { funnels, loading: funnelsLoading } = useFunnels();
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
-  const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
+
+  // Fix #9: Only resolve activeFunnel after funnels are loaded
+  const activeFunnel = useMemo(() => {
+    if (funnels.length === 0) return undefined;
+    return funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
+  }, [funnels, selectedFunnelId]);
+
+  // Fix #9: Only pass funnelId when we have a confirmed funnel
   const { leads, loading: leadsLoading, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
@@ -52,6 +61,7 @@ export default function LeadsPage() {
   const [transferTarget, setTransferTarget] = useState<DBLead | null>(null);
   const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
   const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
