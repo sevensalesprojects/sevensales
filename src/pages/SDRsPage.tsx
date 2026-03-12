@@ -92,10 +92,27 @@ export default function SDRsPage() {
   const handleCreateSDR = async () => {
     if (!newForm.name.trim() || !newForm.email.trim()) return;
     setSaving(true);
-    toast({ title: "SDR cadastrado", description: `${newForm.name} foi adicionado. Um convite será enviado para ${newForm.email}.` });
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-user", {
+        body: {
+          email: newForm.email.trim(),
+          full_name: newForm.name.trim(),
+          phone: newForm.phone.trim() || null,
+          role: "sdr",
+          project_id: currentProject?.id,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "SDR convidado", description: `Um convite foi enviado para ${newForm.email}.` });
+      setNewForm({ name: "", email: "", phone: "" });
+      setShowNewSDR(false);
+      // Refetch SDR data
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: "Erro ao convidar SDR", description: err.message || "Tente novamente.", variant: "destructive" });
+    }
     setSaving(false);
-    setNewForm({ name: "", email: "", phone: "" });
-    setShowNewSDR(false);
   };
 
   return (

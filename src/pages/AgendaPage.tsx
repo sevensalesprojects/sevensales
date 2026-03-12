@@ -318,6 +318,10 @@ export default function AgendaPage() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Link da Reunião (Zoom/Meet)</Label>
+              <Input value={formMeetingUrl} onChange={(e) => setFormMeetingUrl(e.target.value)} placeholder="https://meet.google.com/..." />
+            </div>
+            <div className="space-y-2">
               <Label>Observações</Label>
               <Input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Notas sobre o agendamento" />
             </div>

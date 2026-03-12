@@ -392,6 +392,55 @@ export default function UsersPage() {
         confirmLabel="Excluir"
         destructive
       />
+
+      {/* New User Dialog */}
+      <Dialog open={showNewUser} onOpenChange={setShowNewUser}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Convidar Novo Usuário</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2"><Label>Nome completo *</Label><Input value={newUserForm.full_name} onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })} placeholder="Nome do usuário" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUserForm.email} onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })} placeholder="email@empresa.com" /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input value={newUserForm.phone} onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })} placeholder="(11) 99999-0000" /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Cargo *</Label>
+              <select value={newUserForm.role} onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as AppRole })}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                {allRoles.map(r => <option key={r} value={r}>{roleLabels[r]}</option>)}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewUser(false)}>Cancelar</Button>
+            <Button onClick={async () => {
+              if (!newUserForm.full_name.trim() || !newUserForm.email.trim()) return;
+              setSaving(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("invite-user", {
+                  body: {
+                    email: newUserForm.email.trim(),
+                    full_name: newUserForm.full_name.trim(),
+                    phone: newUserForm.phone.trim() || null,
+                    role: newUserForm.role,
+                  },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.error);
+                toast({ title: "Convite enviado", description: `Um convite foi enviado para ${newUserForm.email}.` });
+                setNewUserForm({ full_name: "", email: "", phone: "", role: "sdr" });
+                setShowNewUser(false);
+                await fetchUsers();
+              } catch (err: any) {
+                toast({ title: "Erro ao convidar", description: err.message || "Tente novamente.", variant: "destructive" });
+              }
+              setSaving(false);
+            }} disabled={saving || !newUserForm.full_name.trim() || !newUserForm.email.trim()}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Enviar Convite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
