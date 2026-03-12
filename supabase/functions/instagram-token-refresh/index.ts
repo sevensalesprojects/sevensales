@@ -12,6 +12,8 @@ Deno.serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const META_APP_ID = Deno.env.get("META_APP_ID") || "";
+  const META_APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
@@ -35,7 +37,7 @@ Deno.serve(async (req) => {
       try {
         // Exchange for long-lived token via Meta Graph API
         const res = await fetch(
-          `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=&fb_exchange_token=${account.access_token}`,
+          `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${account.access_token}`,
           { method: "GET" }
         );
 
