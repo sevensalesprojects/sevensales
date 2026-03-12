@@ -17,7 +17,7 @@ import { formatCurrency } from "@/lib/currency";
 import {
   Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
   Loader2, Phone, MessageCircle, Pencil, Tag, CheckSquare, Square, MinusSquare,
-  LayoutGrid, List, SlidersHorizontal,
+  LayoutGrid, List, SlidersHorizontal, CalendarPlus, Move,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
