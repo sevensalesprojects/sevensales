@@ -17,6 +17,7 @@ import {
   X,
   ClipboardList,
   Trophy,
+  WifiOff,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useFollowupNotifications } from "@/hooks/useFollowupNotifications";
@@ -25,6 +26,8 @@ import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRealtimeHealth } from "@/hooks/useRealtimeHealth";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +37,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "react-router-dom";
 import { IntegrationStatusDots } from "@/components/IntegrationHealthBanner";
+
+import { CalendarDays } from "lucide-react";
 
 import { CalendarDays } from "lucide-react";
 
