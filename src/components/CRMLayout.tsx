@@ -38,18 +38,18 @@ import { IntegrationStatusDots } from "@/components/IntegrationHealthBanner";
 import { CalendarDays } from "lucide-react";
 
 const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Leads", url: "/leads", icon: Users },
-  { title: "Conversas", url: "/conversations", icon: MessageSquare },
-  { title: "Funis", url: "/funnels", icon: Kanban },
-  { title: "Agenda", url: "/agenda", icon: CalendarDays },
-  { title: "SDRs", url: "/sdrs", icon: UserCog },
-  { title: "Closers", url: "/closers", icon: Handshake },
-  { title: "Ranking", url: "/ranking", icon: Trophy },
-  { title: "Onboarding", url: "/onboarding", icon: ClipboardList },
-  { title: "Integrações", url: "/integrations", icon: Plug },
-  { title: "Usuários", url: "/users", icon: FolderKanban },
-  { title: "Configurações", url: "/settings", icon: Settings },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, badgeType: null as string | null },
+  { title: "Leads", url: "/leads", icon: Users, badgeType: null },
+  { title: "Conversas", url: "/conversations", icon: MessageSquare, badgeType: "new_message" },
+  { title: "Funis", url: "/funnels", icon: Kanban, badgeType: null },
+  { title: "Agenda", url: "/agenda", icon: CalendarDays, badgeType: "call_scheduled" },
+  { title: "SDRs", url: "/sdrs", icon: UserCog, badgeType: null },
+  { title: "Closers", url: "/closers", icon: Handshake, badgeType: null },
+  { title: "Ranking", url: "/ranking", icon: Trophy, badgeType: null },
+  { title: "Onboarding", url: "/onboarding", icon: ClipboardList, badgeType: null },
+  { title: "Integrações", url: "/integrations", icon: Plug, badgeType: null },
+  { title: "Usuários", url: "/users", icon: FolderKanban, badgeType: null },
+  { title: "Configurações", url: "/settings", icon: Settings, badgeType: null },
 ];
 
 const bottomNavItems = [

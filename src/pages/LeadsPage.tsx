@@ -537,7 +537,35 @@ export default function LeadsPage() {
         )}
       </div>
 
-      {selectedLead && (
+      {/* Context Menu (#16) */}
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setContextMenu(null)} />
+          <div
+            className="fixed z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button onClick={() => { setEditTarget(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+            <button onClick={() => { setTransferTarget(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
+              <ArrowRightLeft className="w-3.5 h-3.5" /> Transferir SDR
+            </button>
+            <button onClick={() => { setMoveTarget(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
+              <Move className="w-3.5 h-3.5" /> Mover para Etapa
+            </button>
+            <div className="h-px bg-border my-1" />
+            <button onClick={() => { handleDeleteRequest(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" /> Excluir
+            </button>
+          </div>
+        </>
+      )}
+
         <LeadDetailPanel
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
