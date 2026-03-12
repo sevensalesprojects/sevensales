@@ -22,7 +22,11 @@ export interface DBLead {
   tags: string[];
   sdr_name?: string;
   closer_name?: string;
-  // New fields
+  stage_name?: string;
+  stage_color?: string;
+  funnel_name?: string;
+  funnel_type?: string;
+  // Extra fields
   country: string | null;
   group_number: string | null;
   group_link: string | null;
@@ -51,67 +55,144 @@ export interface CreateLeadData {
   value_estimate?: number;
 }
 
+const PAGE_SIZE = 50;
+
 export function useLeads(funnelId?: string) {
   const { currentProject } = useProject();
   const [leads, setLeads] = useState<DBLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (pageNum = 0, append = false) => {
     if (!currentProject) {
       setLeads([]);
       setLoading(false);
       return;
     }
 
-    let query = supabase
-      .from("leads")
-      .select("*")
-      .eq("project_id", currentProject.id)
-      .order("created_at", { ascending: false });
+    try {
+      setError(null);
+      // Use leads_enriched view to get sdr_name, closer_name, stage info in one query
+      let query = supabase
+        .from("leads_enriched" as any)
+        .select("*", { count: "exact" })
+        .eq("project_id", currentProject.id)
+        .order("created_at", { ascending: false })
+        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
-    if (funnelId) {
-      query = query.eq("funnel_id", funnelId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching leads:", error);
-      setLeads([]);
-      setLoading(false);
-      return;
-    }
-
-    const leadIds = (data || []).map((l) => l.id);
-    let tagsMap: Record<string, string[]> = {};
-
-    if (leadIds.length > 0) {
-      const { data: leadTags } = await supabase
-        .from("lead_tags")
-        .select("lead_id, tag_id, tags(name)")
-        .in("lead_id", leadIds);
-
-      if (leadTags) {
-        leadTags.forEach((lt: any) => {
-          if (!tagsMap[lt.lead_id]) tagsMap[lt.lead_id] = [];
-          if (lt.tags?.name) tagsMap[lt.lead_id].push(lt.tags.name);
-        });
+      if (funnelId) {
+        query = query.eq("funnel_id", funnelId);
       }
+
+      const { data, error: queryError, count } = await query;
+
+      if (queryError) {
+        console.error("Error fetching leads:", queryError);
+        setError(queryError.message);
+        if (!append) { setLeads([]); }
+        setLoading(false);
+        return;
+      }
+
+      const result: DBLead[] = (data || []).map((l: any) => ({
+        ...l,
+        consultation_done: l.consultation_done ?? false,
+        tags: l.tags_json ? (Array.isArray(l.tags_json) ? l.tags_json : []) : [],
+        sdr_name: l.sdr_name || undefined,
+        closer_name: l.closer_name || undefined,
+        stage_name: l.stage_name || undefined,
+        stage_color: l.stage_color || undefined,
+        funnel_name: l.funnel_name || undefined,
+        funnel_type: l.funnel_type || undefined,
+      }));
+
+      if (append) {
+        setLeads(prev => [...prev, ...result]);
+      } else {
+        setLeads(result);
+      }
+
+      const total = count || 0;
+      setTotalCount(total);
+      setHasMore((pageNum + 1) * PAGE_SIZE < total);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching leads:", err);
+      setError(String(err));
+      setLoading(false);
     }
-
-    const result: DBLead[] = (data || []).map((l) => ({
-      ...l,
-      consultation_done: l.consultation_done ?? false,
-      tags: tagsMap[l.id] || [],
-    }));
-
-    setLeads(result);
-    setLoading(false);
   }, [currentProject?.id, funnelId]);
 
+  // Reset pagination when funnel changes
   useEffect(() => {
-    fetchLeads();
+    setPage(0);
+    setLeads([]);
+    setLoading(true);
+    fetchLeads(0, false);
   }, [fetchLeads]);
+
+  // Realtime: UPDATE, INSERT, DELETE on leads
+  useEffect(() => {
+    if (!currentProject) return;
+
+    const channel = supabase
+      .channel(`leads-realtime-${currentProject.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "leads",
+          filter: `project_id=eq.${currentProject.id}`,
+        },
+        (payload) => {
+          setLeads(prev =>
+            prev.map(l =>
+              l.id === payload.new.id ? { ...l, ...payload.new } : l
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "leads",
+          filter: `project_id=eq.${currentProject.id}`,
+        },
+        () => {
+          fetchLeads(0, false);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "leads",
+          filter: `project_id=eq.${currentProject.id}`,
+        },
+        (payload) => {
+          setLeads(prev => prev.filter(l => l.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentProject?.id]);
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || loading) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchLeads(nextPage, true);
+  }, [hasMore, loading, page, fetchLeads]);
 
   const updateLeadStage = async (leadId: string, stageId: string) => {
     const { error } = await supabase
@@ -162,7 +243,7 @@ export function useLeads(funnelId?: string) {
       .single();
 
     if (!error && newLead) {
-      await fetchLeads();
+      await fetchLeads(0, false);
       return newLead;
     }
     return null;
@@ -180,5 +261,17 @@ export function useLeads(funnelId?: string) {
     return !error;
   };
 
-  return { leads, loading, refetch: fetchLeads, updateLeadStage, updateLeadField, createLead, deleteLead };
+  return {
+    leads,
+    loading,
+    error,
+    totalCount,
+    hasMore,
+    loadMore,
+    refetch: () => { setPage(0); fetchLeads(0, false); },
+    updateLeadStage,
+    updateLeadField,
+    createLead,
+    deleteLead,
+  };
 }
