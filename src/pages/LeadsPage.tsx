@@ -382,7 +382,7 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Content — List */}
+      {/* Content */}
       <div className="flex-1 overflow-auto p-3 md:p-4">
         {isMobile ? (
           <div className="space-y-2">
@@ -390,7 +390,43 @@ export default function LeadsPage() {
               <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} currencyCode={currencyCode} />
             ))}
           </div>
+        ) : viewMode === "kanban" && stages.length > 0 ? (
+          /* Kanban View (#8) */
+          <div className="flex gap-3 h-full min-w-max">
+            {stages.map((stage) => {
+              const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
+              return (
+                <div
+                  key={stage.id}
+                  className="w-64 md:w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => handleDrop(stage.id)}
+                >
+                  <div className="px-3 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
+                      <span className="text-sm font-medium text-foreground">{stage.name}</span>
+                      <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">{stageLeads.length}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto scrollbar-thin">
+                    {stageLeads.map((lead) => (
+                      <LeadCardDB
+                        key={lead.id}
+                        lead={lead}
+                        onDragStart={() => setDraggedLead(lead.id)}
+                        onClick={() => setSelectedLead(lead)}
+                        currencyCode={currencyCode}
+                      />
+                    ))}
+                    {stageLeads.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum lead</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          /* List View */
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">
