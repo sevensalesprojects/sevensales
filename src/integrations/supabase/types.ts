@@ -140,6 +140,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "calls_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -286,6 +293,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
             referencedColumns: ["id"]
           },
           {
@@ -485,6 +499,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_activity_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_notes: {
@@ -517,6 +538,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_tags: {
@@ -541,6 +569,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tags_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
             referencedColumns: ["id"]
           },
           {
@@ -722,6 +757,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
             referencedColumns: ["id"]
           },
           {
@@ -908,6 +950,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "onboarding_process_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "onboarding_process_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -1035,6 +1084,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
             referencedColumns: ["id"]
           },
           {
@@ -1167,6 +1223,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_enriched"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_projects: {
@@ -1248,6 +1311,45 @@ export type Database = {
           },
         ]
       }
+      webhook_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          process_after: string
+          processed_at: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload: Json
+          process_after?: string
+          processed_at?: string | null
+          source: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          process_after?: string
+          processed_at?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
       whatsapp_sessions: {
         Row: {
           created_at: string
@@ -1288,7 +1390,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leads_enriched: {
+        Row: {
+          avatar_url: string | null
+          call_recording_link: string | null
+          channel: string | null
+          closer_id: string | null
+          closer_name: string | null
+          consultation_done: boolean | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          funnel_id: string | null
+          funnel_name: string | null
+          funnel_type: string | null
+          google_calendar_event_id: string | null
+          group_link: string | null
+          group_number: string | null
+          id: string | null
+          instagram: string | null
+          instagram_username: string | null
+          name: string | null
+          observations: string | null
+          phone: string | null
+          project_id: string | null
+          qualification_score: string | null
+          reference_month: string | null
+          response_time_minutes: number | null
+          sale_status: string | null
+          scheduling_date: string | null
+          scheduling_summary: string | null
+          sdr_evaluation: string | null
+          sdr_id: string | null
+          sdr_name: string | null
+          sdr_observations: string | null
+          source: string | null
+          stage_color: string | null
+          stage_id: string | null
+          stage_name: string | null
+          tags_json: Json | null
+          updated_at: string | null
+          value_estimate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_project_access: {
