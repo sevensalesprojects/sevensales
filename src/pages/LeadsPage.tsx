@@ -550,6 +550,19 @@ export default function LeadsPage() {
             </div>
           </div>
         )}
+
+        {/* Load More */}
+        {hasMore && filteredLeads.length > 0 && (
+          <div className="flex justify-center py-4">
+            <button
+              onClick={loadMore}
+              className="h-8 px-6 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+            >
+              <ChevronDown className="w-4 h-4" />
+              Carregar mais
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Context Menu (#16) */}
