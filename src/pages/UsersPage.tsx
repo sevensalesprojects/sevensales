@@ -176,7 +176,7 @@ export default function UsersPage() {
           <h1 className="text-base md:text-lg font-semibold text-foreground">Usuários</h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gestão de acesso · {users.length} usuários</p>
         </div>
-        <button onClick={() => toast({ title: "Em breve", description: "Convite de novos usuários será disponibilizado em breve." })}
+        <button onClick={() => setShowNewUser(true)}
           className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /><span className="hidden md:inline">Novo Usuário</span>
         </button>
