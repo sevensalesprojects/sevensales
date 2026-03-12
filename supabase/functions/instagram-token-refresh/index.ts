@@ -12,6 +12,8 @@ Deno.serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const META_APP_ID = Deno.env.get("META_APP_ID") || "";
+  const META_APP_SECRET = Deno.env.get("META_APP_SECRET") || "";
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
