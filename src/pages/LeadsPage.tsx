@@ -52,7 +52,7 @@ export default function LeadsPage() {
   }, [funnels, selectedFunnelId]);
 
   // Fix #9: Only pass funnelId when we have a confirmed funnel
-  const { leads, loading: leadsLoading, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
+  const { leads, loading: leadsLoading, error: leadsError, totalCount, hasMore, loadMore, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
