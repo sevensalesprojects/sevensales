@@ -393,7 +393,14 @@ export default function LeadsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-3 md:p-4">
-        {isMobile ? (
+        {filteredLeads.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum lead encontrado"
+            description={searchQuery ? "Tente alterar os filtros ou termos de busca." : "Crie seu primeiro lead para começar a gerenciar seu funil."}
+            actionLabel={!searchQuery ? "Criar Lead" : undefined}
+            onAction={!searchQuery ? () => setShowCreateLead(true) : undefined}
+          />
+        ) : isMobile ? (
           <div className="space-y-2">
             {filteredLeads.map((lead) => (
               <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} currencyCode={currencyCode} />
