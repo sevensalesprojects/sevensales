@@ -260,13 +260,24 @@ export default function LeadsPage() {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
+  // Keyboard shortcuts (#12)
+  useKeyboardShortcuts({
+    n: () => setShowCreateLead(true),
+    f: () => {
+      const input = document.querySelector<HTMLInputElement>('input[placeholder*="Buscar"]');
+      input?.focus();
+    },
+  });
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0 gap-2">
         <div className="min-w-0">
           <h1 className="text-base md:text-lg font-semibold text-foreground">Leads</h1>
-          <p className="text-xs md:text-sm text-muted-foreground truncate">{currentProject?.name} · {filteredLeads.length} leads</p>
+          <p className="text-xs md:text-sm text-muted-foreground truncate">
+            {activeFunnel ? `${activeFunnel.name} · ` : ""}{filteredLeads.length} leads
+          </p>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           {funnels.length > 1 && !isMobile && (
