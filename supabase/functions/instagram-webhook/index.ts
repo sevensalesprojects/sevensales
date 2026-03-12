@@ -37,10 +37,17 @@ Deno.serve(async (req) => {
       const body = await req.json();
       console.log("📩 Instagram webhook received:", JSON.stringify(body));
 
+      // 3.3 Save to webhook queue FIRST for resilience
+      await supabase.from("webhook_queue").insert({
+        source: "instagram",
+        payload: body,
+      });
+
       if (body.object !== "instagram") {
         return new Response("Not instagram", { status: 200, headers: corsHeaders });
       }
 
+      // Process immediately (queue serves as backup for retries)
       for (const entry of body.entry || []) {
         for (const event of entry.messaging || []) {
           await processMessage(supabase, event);
@@ -174,7 +181,6 @@ async function processMessage(supabase: any, event: any) {
 
     lead = newLead;
 
-    // Log lead creation
     await supabase.from("system_logs").insert({
       action: "lead_auto_created_instagram",
       project_id: projectId,
@@ -183,7 +189,6 @@ async function processMessage(supabase: any, event: any) {
       metadata: { instagram_user_id: senderId, username, profile_pic: profilePicUrl },
     });
   } else {
-    // Update existing lead profile info
     const updates: Record<string, string> = {};
     if (profileName && profileName !== `Instagram ${senderId}`) updates.name = profileName;
     if (username) updates.instagram_username = username;
