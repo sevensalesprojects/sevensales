@@ -262,7 +262,11 @@ export default function LeadsPage() {
   const currencyCode = (currentProject as any)?.currency_code || "BRL";
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+    return viewMode === "kanban" ? <KanbanSkeleton /> : <LeadTableSkeleton />;
+  }
+
+  if (leadsError) {
+    return <ErrorState title="Erro ao carregar leads" description={leadsError} onRetry={refetch} />;
   }
 
   // Keyboard shortcuts (#12)
