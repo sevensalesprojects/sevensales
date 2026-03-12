@@ -82,7 +82,6 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   const { projects, currentProject, setCurrentProject } = useProject();
   const { profile, signOut, roles } = useAuth();
   const { countByType } = useNotifications();
-  const { profile, signOut, roles } = useAuth();
 
   const roleLabel = roles.includes("admin_master")
     ? "Admin Master"
