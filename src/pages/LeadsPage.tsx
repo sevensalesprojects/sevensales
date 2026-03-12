@@ -439,7 +439,7 @@ export default function LeadsPage() {
                         currencyCode={currencyCode}
                       />
                     ))}
-                    {stageLeads.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum lead</p>}
+                    {stageLeads.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Arraste leads para cá ou clique + para criar</p>}
                   </div>
                 </div>
               );
