@@ -285,7 +285,7 @@ export default function LeadsPage() {
         <div className="min-w-0">
           <h1 className="text-base md:text-lg font-semibold text-foreground">Leads</h1>
           <p className="text-xs md:text-sm text-muted-foreground truncate">
-            {activeFunnel ? `${activeFunnel.name} · ` : ""}{filteredLeads.length} leads
+            {activeFunnel ? `${activeFunnel.name} · ` : ""}Mostrando {filteredLeads.length} de {totalCount} leads
           </p>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
