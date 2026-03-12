@@ -276,6 +276,7 @@ export function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const { currentProject } = useProject();
   const { unreadCount } = useNotifications();
+  useFollowupNotifications();
 
   return (
     <>
