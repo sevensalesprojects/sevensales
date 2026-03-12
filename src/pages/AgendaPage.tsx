@@ -395,7 +395,12 @@ function CallCard({ call, onStatusChange, onLeadClick, compact }: {
               {call.lead_phone && <span className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> {call.lead_phone}</span>}
             </div>
             {call.notes && <p className="text-xs text-muted-foreground mt-1">{call.notes}</p>}
-          </div>
+            {call.meeting_url && call.status === "scheduled" && (
+              <a href={call.meeting_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                <Video className="w-3 h-3" /> Entrar na Call
+              </a>
+            )}
         </div>
         <div className="flex items-center gap-1.5">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
