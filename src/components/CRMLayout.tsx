@@ -40,8 +40,6 @@ import { IntegrationStatusDots } from "@/components/IntegrationHealthBanner";
 
 import { CalendarDays } from "lucide-react";
 
-import { CalendarDays } from "lucide-react";
-
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, badgeType: null as string | null },
   { title: "Leads", url: "/leads", icon: Users, badgeType: null },
