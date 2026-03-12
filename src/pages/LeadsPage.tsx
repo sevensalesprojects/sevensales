@@ -17,7 +17,7 @@ import { formatCurrency } from "@/lib/currency";
 import {
   Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
   Loader2, Phone, MessageCircle, Pencil, Tag, CheckSquare, Square, MinusSquare,
-  LayoutGrid, List, SlidersHorizontal,
+  LayoutGrid, List, SlidersHorizontal, CalendarPlus, Move,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -62,6 +62,7 @@ export default function LeadsPage() {
   const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [contextMenu, setContextMenu] = useState<{ lead: DBLead; x: number; y: number } | null>(null);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -416,6 +417,10 @@ export default function LeadsPage() {
                         lead={lead}
                         onDragStart={() => setDraggedLead(lead.id)}
                         onClick={() => setSelectedLead(lead)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setContextMenu({ lead, x: e.clientX, y: e.clientY });
+                        }}
                         currencyCode={currencyCode}
                       />
                     ))}
@@ -532,6 +537,35 @@ export default function LeadsPage() {
         )}
       </div>
 
+      {/* Context Menu (#16) */}
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setContextMenu(null)} />
+          <div
+            className="fixed z-50 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button onClick={() => { setEditTarget(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </button>
+            <button onClick={() => { setTransferTarget(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
+              <ArrowRightLeft className="w-3.5 h-3.5" /> Transferir SDR
+            </button>
+            <button onClick={() => { setMoveTarget(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
+              <Move className="w-3.5 h-3.5" /> Mover para Etapa
+            </button>
+            <div className="h-px bg-border my-1" />
+            <button onClick={() => { handleDeleteRequest(contextMenu.lead); setContextMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" /> Excluir
+            </button>
+          </div>
+        </>
+      )}
+
       {selectedLead && (
         <LeadDetailPanel
           lead={selectedLead}
@@ -635,9 +669,15 @@ export default function LeadsPage() {
   );
 }
 
-function LeadCardDB({ lead, onDragStart, onClick, currencyCode }: { lead: DBLead; onDragStart: () => void; onClick: () => void; currencyCode: string }) {
+function LeadCardDB({ lead, onDragStart, onClick, onContextMenu, currencyCode }: { lead: DBLead; onDragStart: () => void; onClick: () => void; onContextMenu?: (e: React.MouseEvent) => void; currencyCode: string }) {
   return (
-    <div draggable onDragStart={onDragStart} onClick={onClick} className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all group"
+    >
       <div className="flex items-start justify-between mb-2">
         <p className="text-sm font-medium text-card-foreground leading-tight">{lead.name}</p>
         {lead.value_estimate && <span className="text-xs font-semibold text-primary">{formatCurrency(lead.value_estimate, currencyCode)}</span>}

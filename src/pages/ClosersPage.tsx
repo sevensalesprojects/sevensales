@@ -4,10 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/currency";
 import { Phone, PhoneCall, Percent, FileText, DollarSign, TrendingUp } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { subDays, startOfDay, endOfDay } from "date-fns";
+
+type Period = "7d" | "30d" | "90d" | "all";
+
+function getPeriodRange(period: Period) {
+  if (period === "all") return { start: null, end: null };
+  const end = endOfDay(new Date());
+  const start = startOfDay(subDays(new Date(), parseInt(period)));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
 
 export default function ClosersPage() {
   const { currentProject } = useProject();
   const currencyCode = currentProject?.currency_code || "BRL";
+  const [period, setPeriod] = useState<Period>("30d");
+  const range = useMemo(() => getPeriodRange(period), [period]);
 
   const { data: closerRoles = [] } = useQuery({
     queryKey: ["closer-roles"],
@@ -25,12 +38,15 @@ export default function ClosersPage() {
   });
 
   const { data: leads = [] } = useQuery({
-    queryKey: ["closer-leads", currentProject?.id],
+    queryKey: ["closer-leads", currentProject?.id, period],
     queryFn: async () => {
       if (!currentProject) return [];
-      const { data } = await supabase.from("leads")
+      let q = supabase.from("leads")
         .select("id, sdr_id, closer_id, scheduling_date, consultation_done, sale_status, value_estimate")
         .eq("project_id", currentProject.id);
+      if (range.start) q = q.gte("created_at", range.start);
+      if (range.end) q = q.lte("created_at", range.end);
+      const { data } = await q;
       return data || [];
     },
     enabled: !!currentProject,
@@ -75,9 +91,22 @@ export default function ClosersPage() {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 overflow-y-auto h-full scrollbar-thin">
-      <div>
-        <h1 className="text-base md:text-lg font-semibold text-foreground">Closers</h1>
-        <p className="text-xs md:text-sm text-muted-foreground">{currentProject?.name || "—"} · Gestão Comercial</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-base md:text-lg font-semibold text-foreground">Closers</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">{currentProject?.name || "—"} · Gestão Comercial</p>
+        </div>
+        <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+          <SelectTrigger className="w-[160px] h-8 text-xs bg-card border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">Últimos 7 dias</SelectItem>
+            <SelectItem value="30d">Últimos 30 dias</SelectItem>
+            <SelectItem value="90d">Últimos 90 dias</SelectItem>
+            <SelectItem value="all">Todo o período</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

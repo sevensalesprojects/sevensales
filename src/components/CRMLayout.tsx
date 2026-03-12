@@ -38,18 +38,18 @@ import { IntegrationStatusDots } from "@/components/IntegrationHealthBanner";
 import { CalendarDays } from "lucide-react";
 
 const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Leads", url: "/leads", icon: Users },
-  { title: "Conversas", url: "/conversations", icon: MessageSquare },
-  { title: "Funis", url: "/funnels", icon: Kanban },
-  { title: "Agenda", url: "/agenda", icon: CalendarDays },
-  { title: "SDRs", url: "/sdrs", icon: UserCog },
-  { title: "Closers", url: "/closers", icon: Handshake },
-  { title: "Ranking", url: "/ranking", icon: Trophy },
-  { title: "Onboarding", url: "/onboarding", icon: ClipboardList },
-  { title: "Integrações", url: "/integrations", icon: Plug },
-  { title: "Usuários", url: "/users", icon: FolderKanban },
-  { title: "Configurações", url: "/settings", icon: Settings },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, badgeType: null as string | null },
+  { title: "Leads", url: "/leads", icon: Users, badgeType: null },
+  { title: "Conversas", url: "/conversations", icon: MessageSquare, badgeType: "new_message" },
+  { title: "Funis", url: "/funnels", icon: Kanban, badgeType: null },
+  { title: "Agenda", url: "/agenda", icon: CalendarDays, badgeType: "call_scheduled" },
+  { title: "SDRs", url: "/sdrs", icon: UserCog, badgeType: null },
+  { title: "Closers", url: "/closers", icon: Handshake, badgeType: null },
+  { title: "Ranking", url: "/ranking", icon: Trophy, badgeType: null },
+  { title: "Onboarding", url: "/onboarding", icon: ClipboardList, badgeType: null },
+  { title: "Integrações", url: "/integrations", icon: Plug, badgeType: null },
+  { title: "Usuários", url: "/users", icon: FolderKanban, badgeType: null },
+  { title: "Configurações", url: "/settings", icon: Settings, badgeType: null },
 ];
 
 const bottomNavItems = [
@@ -81,6 +81,7 @@ function getProjectColor(index: number) {
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const { projects, currentProject, setCurrentProject } = useProject();
   const { profile, signOut, roles } = useAuth();
+  const { countByType } = useNotifications();
 
   const roleLabel = roles.includes("admin_master")
     ? "Admin Master"
@@ -155,19 +156,27 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto scrollbar-thin">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.url}
-            to={item.url}
-            end={item.url === "/"}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-            onClick={onClose}
-          >
-            <item.icon className="w-4 h-4 shrink-0" />
-            <span>{item.title}</span>
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const badgeCount = item.badgeType ? countByType(item.badgeType) : 0;
+          return (
+            <NavLink
+              key={item.url}
+              to={item.url}
+              end={item.url === "/"}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+              onClick={onClose}
+            >
+              <item.icon className="w-4 h-4 shrink-0" />
+              <span className="flex-1">{item.title}</span>
+              {badgeCount > 0 && (
+                <span className="min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  {badgeCount > 9 ? "9+" : badgeCount}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Bottom - User */}

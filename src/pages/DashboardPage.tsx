@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users, Target, DollarSign, Clock, ArrowUpRight, ArrowDownRight,
   CalendarCheck, CalendarClock, Percent, Instagram, MessageCircle,
-  ChevronDown, Calendar as CalendarIcon
+  ChevronDown, Calendar as CalendarIcon, Send
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -99,6 +99,32 @@ export default function DashboardPage() {
       const { data } = await supabase.from("leads")
         .select("id, consultation_done, sale_status, value_estimate, scheduling_date, response_time_minutes")
         .eq("project_id", projectId).gte("created_at", prevFrom).lte("created_at", prevTo);
+      return data || [];
+    },
+    enabled: !!projectId,
+  });
+
+  // Fetch outbound messages for "Disparos" KPI (#13)
+  const { data: outboundMessages = [] } = useQuery({
+    queryKey: ["dashboard-messages", projectId, from, to],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data } = await supabase.from("messages")
+        .select("id, sender_id, channel, created_at")
+        .eq("project_id", projectId).eq("direction", "outbound")
+        .gte("created_at", from).lte("created_at", to);
+      return data || [];
+    },
+    enabled: !!projectId,
+  });
+  const { data: prevOutboundMessages = [] } = useQuery({
+    queryKey: ["dashboard-messages-prev", projectId, prevFrom, prevTo],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data } = await supabase.from("messages")
+        .select("id")
+        .eq("project_id", projectId).eq("direction", "outbound")
+        .gte("created_at", prevFrom).lte("created_at", prevTo);
       return data || [];
     },
     enabled: !!projectId,
@@ -263,6 +289,31 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-2"><div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Clock className="w-4 h-4 text-primary" /></div></div>
           <p className="text-2xl font-bold text-card-foreground">{formatResponseTime(avgResponse)}</p>
           <p className="text-xs text-muted-foreground">Tempo Médio Resposta</p>
+        </div>
+      </div>
+
+      {/* Disparos KPI (#13) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-4 rounded-xl bg-card border border-border">
+          <div className="flex items-center justify-between mb-2"><div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Send className="w-4 h-4 text-primary" /></div>
+            <PeriodComparison current={outboundMessages.length} previous={prevOutboundMessages.length} /></div>
+          <p className="text-2xl font-bold text-card-foreground">{outboundMessages.length}</p>
+          <p className="text-xs text-muted-foreground">Disparos Totais</p>
+        </div>
+        <div className="p-4 rounded-xl bg-card border border-border">
+          <div className="flex items-center justify-between mb-2"><div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center"><Instagram className="w-4 h-4 text-pink-500" /></div></div>
+          <p className="text-2xl font-bold text-card-foreground">{outboundMessages.filter(m => m.channel === "instagram").length}</p>
+          <p className="text-xs text-muted-foreground">Disparos Instagram</p>
+        </div>
+        <div className="p-4 rounded-xl bg-card border border-border">
+          <div className="flex items-center justify-between mb-2"><div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><MessageCircle className="w-4 h-4 text-emerald-500" /></div></div>
+          <p className="text-2xl font-bold text-card-foreground">{outboundMessages.filter(m => m.channel === "whatsapp").length}</p>
+          <p className="text-xs text-muted-foreground">Disparos WhatsApp</p>
+        </div>
+        <div className="p-4 rounded-xl bg-card border border-border">
+          <div className="flex items-center justify-between mb-2"><div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Users className="w-4 h-4 text-primary" /></div></div>
+          <p className="text-2xl font-bold text-card-foreground">{new Set(outboundMessages.map(m => m.sender_id).filter(Boolean)).size}</p>
+          <p className="text-xs text-muted-foreground">SDRs Ativos</p>
         </div>
       </div>
 
