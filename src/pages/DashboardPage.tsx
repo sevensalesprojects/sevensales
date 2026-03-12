@@ -104,6 +104,32 @@ export default function DashboardPage() {
     enabled: !!projectId,
   });
 
+  // Fetch outbound messages for "Disparos" KPI (#13)
+  const { data: outboundMessages = [] } = useQuery({
+    queryKey: ["dashboard-messages", projectId, from, to],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data } = await supabase.from("messages")
+        .select("id, sender_id, channel, created_at")
+        .eq("project_id", projectId).eq("direction", "outbound")
+        .gte("created_at", from).lte("created_at", to);
+      return data || [];
+    },
+    enabled: !!projectId,
+  });
+  const { data: prevOutboundMessages = [] } = useQuery({
+    queryKey: ["dashboard-messages-prev", projectId, prevFrom, prevTo],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data } = await supabase.from("messages")
+        .select("id")
+        .eq("project_id", projectId).eq("direction", "outbound")
+        .gte("created_at", prevFrom).lte("created_at", prevTo);
+      return data || [];
+    },
+    enabled: !!projectId,
+  });
+
   // Fetch profiles for SDR/Closer names
   const { data: profiles = [] } = useQuery({
     queryKey: ["dashboard-profiles"],
