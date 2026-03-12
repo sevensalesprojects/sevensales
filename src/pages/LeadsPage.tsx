@@ -62,6 +62,8 @@ export default function LeadsPage() {
   const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [contextMenu, setContextMenu] = useState<{ lead: DBLead; x: number; y: number } | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
