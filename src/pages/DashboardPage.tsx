@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users, Target, DollarSign, Clock, ArrowUpRight, ArrowDownRight,
   CalendarCheck, CalendarClock, Percent, Instagram, MessageCircle,
-  ChevronDown, Calendar as CalendarIcon
+  ChevronDown, Calendar as CalendarIcon, Send
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
