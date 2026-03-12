@@ -205,7 +205,66 @@ export default function FunnelsPage() {
         stages={stages}
         funnelId={activeFunnel.id}
       />
+      <CreateFunnelDialog
+        open={showCreateFunnel}
+        onOpenChange={setShowCreateFunnel}
+        name={newFunnelName}
+        onNameChange={setNewFunnelName}
+        type={newFunnelType}
+        onTypeChange={setNewFunnelType}
+        saving={creatingFunnel}
+        onCreate={handleCreateFunnel}
+      />
     </div>
+  );
+}
+
+function CreateFunnelDialog({
+  open, onOpenChange, name, onNameChange, type, onTypeChange, saving, onCreate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  name: string;
+  onNameChange: (name: string) => void;
+  type: "sdr" | "closer";
+  onTypeChange: (type: "sdr" | "closer") => void;
+  saving: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>Criar Novo Funil</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome do Funil *</Label>
+            <Input value={name} onChange={(e) => onNameChange(e.target.value)} placeholder="Ex: Funil SDR Principal" />
+          </div>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={type} onValueChange={(v) => onTypeChange(v as "sdr" | "closer")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sdr">SDR (Prospecção)</SelectItem>
+                <SelectItem value="closer">Closer (Fechamento)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {type === "sdr"
+                ? "Etapas padrão: Lead Novo → Contato → Qualificação → Agendamento"
+                : "Etapas padrão: Call → Proposta → Negociação → Fechado → Perdido"
+              }
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={onCreate} disabled={saving || !name.trim()}>
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar Funil
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
