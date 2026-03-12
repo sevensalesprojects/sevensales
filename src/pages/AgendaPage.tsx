@@ -50,6 +50,7 @@ export default function AgendaPage() {
   const [formDate, setFormDate] = useState("");
   const [formCloserId, setFormCloserId] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formMeetingUrl, setFormMeetingUrl] = useState("");
   const [closers, setClosers] = useState<{ user_id: string; full_name: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
