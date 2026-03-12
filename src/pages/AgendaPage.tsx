@@ -134,21 +134,39 @@ export default function AgendaPage() {
   const handleCreate = async () => {
     if (!formLeadId || !formDate || !user) return;
     setSaving(true);
-    const { error } = await supabase.from("calls").insert({
+    const { data: insertedCall, error } = await supabase.from("calls").insert({
       lead_id: formLeadId,
       scheduled_at: new Date(formDate).toISOString(),
       closer_id: formCloserId || null,
       sdr_id: user.id,
       notes: formNotes || null,
+      meeting_url: formMeetingUrl || null,
+      project_id: currentProject?.id || null,
       status: "scheduled",
-    });
+    } as any).select("id").single();
     if (!error) {
       toast({ title: "Call agendada", description: "Agendamento criado com sucesso." });
       // Update lead scheduling_date
       await updateLeadField(formLeadId, "scheduling_date", new Date(formDate).toISOString());
+
+      // Create notification for the Closer
+      if (formCloserId && currentProject) {
+        const leadName = leads.find(l => l.id === formLeadId)?.name || "Lead";
+        const formattedDate = new Date(formDate).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+        await supabase.from("notifications").insert({
+          user_id: formCloserId,
+          project_id: currentProject.id,
+          type: "call_scheduled",
+          title: "Nova call agendada",
+          description: `Call com ${leadName} — ${formattedDate}`,
+          entity_type: "call",
+          entity_id: insertedCall?.id || null,
+        });
+      }
+
       await fetchCalls();
       setShowCreate(false);
-      setFormLeadId(""); setFormDate(""); setFormCloserId(""); setFormNotes("");
+      setFormLeadId(""); setFormDate(""); setFormCloserId(""); setFormNotes(""); setFormMeetingUrl("");
     } else {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
