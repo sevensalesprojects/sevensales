@@ -157,19 +157,27 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto scrollbar-thin">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.url}
-            to={item.url}
-            end={item.url === "/"}
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-            onClick={onClose}
-          >
-            <item.icon className="w-4 h-4 shrink-0" />
-            <span>{item.title}</span>
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const badgeCount = item.badgeType ? countByType(item.badgeType) : 0;
+          return (
+            <NavLink
+              key={item.url}
+              to={item.url}
+              end={item.url === "/"}
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+              onClick={onClose}
+            >
+              <item.icon className="w-4 h-4 shrink-0" />
+              <span className="flex-1">{item.title}</span>
+              {badgeCount > 0 && (
+                <span className="min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  {badgeCount > 9 ? "9+" : badgeCount}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Bottom - User */}
