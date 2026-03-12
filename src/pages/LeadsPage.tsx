@@ -288,6 +288,14 @@ export default function LeadsPage() {
           )}
           {!isMobile && (
             <>
+              <div className="flex items-center gap-0.5 border border-border rounded-md overflow-hidden">
+                <button onClick={() => setViewMode("list")} className={`h-8 px-2.5 flex items-center gap-1 text-xs font-medium transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                  <List className="w-3.5 h-3.5" /> Lista
+                </button>
+                <button onClick={() => setViewMode("kanban")} className={`h-8 px-2.5 flex items-center gap-1 text-xs font-medium transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                  <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+                </button>
+              </div>
               <button onClick={() => setShowImport(true)} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
                 <Upload className="w-3.5 h-3.5" /> Importar
               </button>
