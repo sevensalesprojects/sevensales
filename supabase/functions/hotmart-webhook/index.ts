@@ -28,6 +28,12 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("📩 Hotmart webhook received:", JSON.stringify(body));
 
+    // 3.3 Save to webhook queue FIRST for resilience
+    await supabase.from("webhook_queue").insert({
+      source: "hotmart",
+      payload: body,
+    });
+
     const event = body.event || body.data?.purchase?.status;
     const buyerEmail = body.data?.buyer?.email;
     const buyerName = body.data?.buyer?.name;
@@ -113,7 +119,22 @@ Deno.serve(async (req) => {
 
     // Process based on event type
     if (event === "PURCHASE_APPROVED" || event === "APPROVED" || event === "purchase.approved") {
-      // Create sale record
+      // Idempotency: check if sale already exists
+      if (externalId) {
+        const { data: existing } = await supabase
+          .from("sales")
+          .select("id")
+          .eq("external_id", externalId)
+          .single();
+        if (existing) {
+          console.log("⏭️ Duplicate sale skipped:", externalId);
+          return new Response(JSON.stringify({ success: true, duplicate: true }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { data: sale } = await supabase
         .from("sales")
         .insert({
@@ -128,13 +149,11 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
 
-      // Update lead sale_status
       await supabase
         .from("leads")
         .update({ sale_status: "sold" })
         .eq("id", lead.id);
 
-      // Create onboarding process automatically
       await supabase.from("onboarding_process").insert({
         lead_id: lead.id,
         project_id: projectId,
@@ -206,7 +225,7 @@ Deno.serve(async (req) => {
     });
 
     return new Response(JSON.stringify({ error: "Processing failed" }), {
-      status: 200, // Always 200 to avoid retries
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

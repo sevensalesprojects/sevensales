@@ -17,8 +17,12 @@ import { formatCurrency } from "@/lib/currency";
 import {
   Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
   Loader2, Phone, MessageCircle, Pencil, Tag, CheckSquare, Square, MinusSquare,
-  LayoutGrid, List, SlidersHorizontal, CalendarPlus, Move,
+  LayoutGrid, List, SlidersHorizontal, CalendarPlus, Move, ChevronDown,
 } from "lucide-react";
+import { LeadTableSkeleton } from "@/components/skeletons/LeadTableSkeleton";
+import { KanbanSkeleton } from "@/components/skeletons/KanbanSkeleton";
+import { ErrorState } from "@/components/ErrorState";
+import { EmptyState } from "@/components/EmptyState";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -48,7 +52,7 @@ export default function LeadsPage() {
   }, [funnels, selectedFunnelId]);
 
   // Fix #9: Only pass funnelId when we have a confirmed funnel
-  const { leads, loading: leadsLoading, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
+  const { leads, loading: leadsLoading, error: leadsError, totalCount, hasMore, loadMore, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -258,7 +262,11 @@ export default function LeadsPage() {
   const currencyCode = (currentProject as any)?.currency_code || "BRL";
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+    return viewMode === "kanban" ? <KanbanSkeleton /> : <LeadTableSkeleton />;
+  }
+
+  if (leadsError) {
+    return <ErrorState title="Erro ao carregar leads" description={leadsError} onRetry={refetch} />;
   }
 
   // Keyboard shortcuts (#12)
@@ -277,7 +285,7 @@ export default function LeadsPage() {
         <div className="min-w-0">
           <h1 className="text-base md:text-lg font-semibold text-foreground">Leads</h1>
           <p className="text-xs md:text-sm text-muted-foreground truncate">
-            {activeFunnel ? `${activeFunnel.name} · ` : ""}{filteredLeads.length} leads
+            {activeFunnel ? `${activeFunnel.name} · ` : ""}Mostrando {filteredLeads.length} de {totalCount} leads
           </p>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
@@ -385,7 +393,14 @@ export default function LeadsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-3 md:p-4">
-        {isMobile ? (
+        {filteredLeads.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum lead encontrado"
+            description={searchQuery ? "Tente alterar os filtros ou termos de busca." : "Crie seu primeiro lead para começar a gerenciar seu funil."}
+            actionLabel={!searchQuery ? "Criar Lead" : undefined}
+            onAction={!searchQuery ? () => setShowCreateLead(true) : undefined}
+          />
+        ) : isMobile ? (
           <div className="space-y-2">
             {filteredLeads.map((lead) => (
               <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} currencyCode={currencyCode} />
@@ -424,7 +439,7 @@ export default function LeadsPage() {
                         currencyCode={currencyCode}
                       />
                     ))}
-                    {stageLeads.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum lead</p>}
+                    {stageLeads.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Arraste leads para cá ou clique + para criar</p>}
                   </div>
                 </div>
               );
@@ -533,6 +548,19 @@ export default function LeadsPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Load More */}
+        {hasMore && filteredLeads.length > 0 && (
+          <div className="flex justify-center py-4">
+            <button
+              onClick={loadMore}
+              className="h-8 px-6 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+            >
+              <ChevronDown className="w-4 h-4" />
+              Carregar mais
+            </button>
           </div>
         )}
       </div>

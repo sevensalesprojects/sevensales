@@ -17,6 +17,7 @@ import {
   X,
   ClipboardList,
   Trophy,
+  WifiOff,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useFollowupNotifications } from "@/hooks/useFollowupNotifications";
@@ -25,6 +26,8 @@ import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRealtimeHealth } from "@/hooks/useRealtimeHealth";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -285,11 +288,23 @@ export function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const { currentProject } = useProject();
   const { unreadCount } = useNotifications();
+  const queryClient = useQueryClient();
+  const { isOnline } = useRealtimeHealth(() => {
+    queryClient.invalidateQueries();
+  });
   useFollowupNotifications();
 
   return (
     <>
       {isMobile && <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />}
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 sticky top-0 z-20">
+          <WifiOff className="w-4 h-4 text-destructive" />
+          <span className="text-xs font-medium text-destructive">Sem conexão — dados podem estar desatualizados</span>
+        </div>
+      )}
       <header className="h-14 border-b border-border flex items-center justify-between px-4 md:px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-2">
           {isMobile && (
