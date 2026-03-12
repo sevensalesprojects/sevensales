@@ -8,18 +8,24 @@ export interface IntegrationStatus {
   label: string;
 }
 
+export interface IGTokenAlert {
+  username: string | null;
+  daysLeft: number;
+}
+
 export function useIntegrationHealth() {
   const { currentProject } = useProject();
   const [statuses, setStatuses] = useState<IntegrationStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [igTokenExpiring, setIgTokenExpiring] = useState<IGTokenAlert[]>([]);
 
   const fetchStatuses = useCallback(async () => {
     if (!currentProject) { setStatuses([]); setLoading(false); return; }
 
-    const [{ data: integrations }, { data: whatsappSessions }, { count: igActiveCount }] = await Promise.all([
+    const [{ data: integrations }, { data: whatsappSessions }, { data: igAccounts }] = await Promise.all([
       supabase.from("integrations").select("type, status").eq("project_id", currentProject.id),
       supabase.from("whatsapp_sessions").select("status").eq("project_id", currentProject.id),
-      supabase.from("instagram_accounts").select("*", { count: "exact", head: true }).eq("project_id", currentProject.id).eq("status", "active"),
+      supabase.from("instagram_accounts").select("username, token_expires_at, status").eq("project_id", currentProject.id),
     ]);
 
     const results: IntegrationStatus[] = [];
@@ -34,10 +40,10 @@ export function useIntegrationHealth() {
     });
 
     // Instagram — derive from instagram_accounts table
-    const igConnected = (igActiveCount || 0) > 0;
+    const igActive = igAccounts?.filter(a => a.status === "active") || [];
     results.push({
       type: "instagram",
-      status: igConnected ? "connected" : "disconnected",
+      status: igActive.length > 0 ? "connected" : "disconnected",
       label: "Instagram",
     });
 
@@ -49,6 +55,17 @@ export function useIntegrationHealth() {
       label: "Webhook",
     });
 
+    // Check for expiring IG tokens (< 7 days)
+    const expiring: IGTokenAlert[] = [];
+    for (const acc of igAccounts || []) {
+      if (!acc.token_expires_at) continue;
+      const daysLeft = (new Date(acc.token_expires_at).getTime() - Date.now()) / 86400000;
+      if (daysLeft < 7) {
+        expiring.push({ username: acc.username, daysLeft: Math.max(0, Math.round(daysLeft)) });
+      }
+    }
+    setIgTokenExpiring(expiring);
+
     setStatuses(results);
     setLoading(false);
   }, [currentProject?.id]);
@@ -56,7 +73,7 @@ export function useIntegrationHealth() {
   useEffect(() => { fetchStatuses(); }, [fetchStatuses]);
 
   const disconnectedCount = statuses.filter(s => s.status === "disconnected").length;
-  const hasAlert = disconnectedCount > 0;
+  const hasAlert = disconnectedCount > 0 || igTokenExpiring.length > 0;
 
-  return { statuses, loading, hasAlert, disconnectedCount, refetch: fetchStatuses };
+  return { statuses, loading, hasAlert, disconnectedCount, igTokenExpiring, igTokenExpiringSoon: igTokenExpiring.length > 0, refetch: fetchStatuses };
 }
