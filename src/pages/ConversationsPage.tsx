@@ -261,12 +261,33 @@ export default function ConversationsPage() {
 
   const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
-  const handleTransferConfirm = () => {
-    if (!transferSdrId || !selectedConversation) return;
-    const sdrName = sdrs.find(s => s.user_id === transferSdrId)?.full_name || "SDR";
-    toast({ title: "Conversa transferida", description: `Transferida para ${sdrName}` });
+  const handleTransferConfirm = async () => {
+    if (!transferSdrId || !selectedConversation || !user) return;
+
+    const { error } = await supabase
+      .from('leads')
+      .update({ sdr_id: transferSdrId })
+      .eq('id', selectedConversation.leadId);
+
+    if (error) {
+      toast({ title: 'Erro ao transferir', description: 'Não foi possível transferir a conversa.', variant: 'destructive' });
+      return;
+    }
+
+    await supabase.from('lead_activity_logs').insert({
+      lead_id: selectedConversation.leadId,
+      user_id: user.id,
+      action: 'lead_transferred',
+      field_changed: 'sdr_id',
+      old_value: selectedConversation.sdrName,
+      new_value: sdrs.find(s => s.user_id === transferSdrId)?.full_name || transferSdrId,
+    } as any);
+
+    const sdrName = sdrs.find(s => s.user_id === transferSdrId)?.full_name || 'SDR';
+    toast({ title: 'Conversa transferida', description: `Transferida para ${sdrName}` });
     setShowTransfer(false);
-    setTransferSdrId("");
+    setTransferSdrId('');
+    setSelectedConversation(prev => prev ? { ...prev, sdrName } : prev);
   };
 
   const handleCreateTaskConfirm = async () => {

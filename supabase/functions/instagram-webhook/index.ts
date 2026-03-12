@@ -77,6 +77,36 @@ Deno.serve(async (req) => {
   return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 });
 
+// ─── Helper: Fetch profile via conversations API ───
+async function fetchInstagramProfile(
+  igAccountId: string,
+  senderId: string,
+  accessToken: string
+): Promise<{ name: string | null; username: string | null; profilePic: string | null }> {
+  try {
+    const convRes = await fetch(
+      `https://graph.facebook.com/v19.0/${igAccountId}/conversations?user_id=${senderId}&fields=participants{name,username,profile_pic}&access_token=${accessToken}`
+    );
+    if (convRes.ok) {
+      const convData = await convRes.json();
+      const participants = convData.data?.[0]?.participants?.data || [];
+      const userParticipant = participants.find(
+        (p: any) => p.id !== igAccountId
+      );
+      if (userParticipant) {
+        return {
+          name: userParticipant.name || null,
+          username: userParticipant.username || null,
+          profilePic: userParticipant.profile_pic || null,
+        };
+      }
+    }
+  } catch {
+    // Ignore profile fetch errors
+  }
+  return { name: null, username: null, profilePic: null };
+}
+
 async function processMessage(supabase: any, event: any) {
   const senderId = event.sender?.id;
   const recipientId = event.recipient?.id;
@@ -91,7 +121,7 @@ async function processMessage(supabase: any, event: any) {
   // 1. Find which instagram account this belongs to
   const { data: igAccount } = await supabase
     .from("instagram_accounts")
-    .select("id, project_id")
+    .select("id, project_id, instagram_user_id, access_token")
     .eq("instagram_user_id", recipientId)
     .eq("status", "active")
     .single();
@@ -103,7 +133,23 @@ async function processMessage(supabase: any, event: any) {
 
   const projectId = igAccount.project_id;
 
-  // 2. Find or create lead
+  // 2. Fetch profile data via conversations API
+  let profileName = `Instagram ${senderId}`;
+  let username: string | null = null;
+  let profilePicUrl: string | null = null;
+
+  if (igAccount.access_token) {
+    const profile = await fetchInstagramProfile(
+      igAccount.instagram_user_id,
+      senderId,
+      igAccount.access_token
+    );
+    if (profile.name) profileName = profile.name;
+    username = profile.username;
+    profilePicUrl = profile.profilePic;
+  }
+
+  // 3. Find or create lead
   let { data: lead } = await supabase
     .from("leads")
     .select("id")
@@ -112,33 +158,6 @@ async function processMessage(supabase: any, event: any) {
     .single();
 
   if (!lead) {
-    // Fetch Instagram profile info (best effort)
-    let profileName = `Instagram ${senderId}`;
-    let username = null;
-    let profilePicUrl = null;
-
-    const account = await supabase
-      .from("instagram_accounts")
-      .select("access_token")
-      .eq("id", igAccount.id)
-      .single();
-
-    if (account.data?.access_token) {
-      try {
-        const profileRes = await fetch(
-          `https://graph.facebook.com/v19.0/${senderId}?fields=name,username,profile_pic&access_token=${account.data.access_token}`
-        );
-        if (profileRes.ok) {
-          const profile = await profileRes.json();
-          profileName = profile.name || profileName;
-          username = profile.username || null;
-          profilePicUrl = profile.profile_pic || null;
-        }
-      } catch {
-        // Ignore profile fetch errors
-      }
-    }
-
     const { data: newLead } = await supabase
       .from("leads")
       .insert({
@@ -164,31 +183,13 @@ async function processMessage(supabase: any, event: any) {
       metadata: { instagram_user_id: senderId, username, profile_pic: profilePicUrl },
     });
   } else {
-    // Update existing lead profile info (best effort, keep data fresh)
-    const account = await supabase
-      .from("instagram_accounts")
-      .select("access_token")
-      .eq("id", igAccount.id)
-      .single();
-
-    if (account.data?.access_token) {
-      try {
-        const profileRes = await fetch(
-          `https://graph.facebook.com/v19.0/${senderId}?fields=name,username,profile_pic&access_token=${account.data.access_token}`
-        );
-        if (profileRes.ok) {
-          const profile = await profileRes.json();
-          const updates: Record<string, string> = {};
-          if (profile.name) updates.name = profile.name;
-          if (profile.username) updates.instagram_username = profile.username;
-          if (profile.profile_pic) updates.avatar_url = profile.profile_pic;
-          if (Object.keys(updates).length > 0) {
-            await supabase.from("leads").update(updates).eq("id", lead.id);
-          }
-        }
-      } catch {
-        // Ignore
-      }
+    // Update existing lead profile info
+    const updates: Record<string, string> = {};
+    if (profileName && profileName !== `Instagram ${senderId}`) updates.name = profileName;
+    if (username) updates.instagram_username = username;
+    if (profilePicUrl) updates.avatar_url = profilePicUrl;
+    if (Object.keys(updates).length > 0) {
+      await supabase.from("leads").update(updates).eq("id", lead.id);
     }
   }
 
@@ -197,7 +198,7 @@ async function processMessage(supabase: any, event: any) {
     return;
   }
 
-  // 3. Check for duplicate message
+  // 4. Check for duplicate message
   if (midId) {
     const { data: existing } = await supabase
       .from("messages")
@@ -211,7 +212,7 @@ async function processMessage(supabase: any, event: any) {
     }
   }
 
-  // 4. Save message
+  // 5. Save message
   await supabase.from("messages").insert({
     lead_id: lead.id,
     project_id: projectId,
@@ -222,7 +223,7 @@ async function processMessage(supabase: any, event: any) {
     instagram_message_id: midId,
   });
 
-  // 5. Log
+  // 6. Log
   await supabase.from("system_logs").insert({
     action: "instagram_message_received",
     project_id: projectId,
@@ -231,7 +232,7 @@ async function processMessage(supabase: any, event: any) {
     metadata: { sender_id: senderId, mid: midId },
   });
 
-  // 6. Fire automations with trigger "instagram_message_received"
+  // 7. Fire automations
   try {
     const { data: automations } = await supabase
       .from("automations")
@@ -242,8 +243,7 @@ async function processMessage(supabase: any, event: any) {
 
     for (const auto of automations || []) {
       console.log(`⚡ Firing automation: ${auto.name} for lead ${lead.id}`);
-      
-      // Create a followup task if action is assign_followup
+
       if (auto.action_type === "create_task" || auto.action_type === "assign_followup") {
         await supabase.from("system_logs").insert({
           action: "automation_triggered",
@@ -254,11 +254,9 @@ async function processMessage(supabase: any, event: any) {
         });
       }
 
-      // Send auto-reply if action is send_message
       if (auto.action_type === "send_message") {
         const replyText = (auto.action_config as any)?.message || "";
         if (replyText) {
-          // Find instagram account for this project to send reply
           const { data: igAcc } = await supabase
             .from("instagram_accounts")
             .select("instagram_user_id, access_token")
@@ -270,7 +268,7 @@ async function processMessage(supabase: any, event: any) {
           if (igAcc?.access_token) {
             try {
               const sendRes = await fetch(
-                `https://graph.facebook.com/v19.0/${igAcc.instagram_user_id}/messages`,
+                `https://graph.facebook.com/v19.0/${igAcc.instagram_user_id}/messages?access_token=${encodeURIComponent(igAcc.access_token)}`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -281,7 +279,7 @@ async function processMessage(supabase: any, event: any) {
                 }
               );
               const sendData = await sendRes.json();
-              
+
               if (sendRes.ok) {
                 await supabase.from("messages").insert({
                   lead_id: lead.id,

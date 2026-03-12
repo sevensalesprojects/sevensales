@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       try {
         // Exchange for long-lived token via Meta Graph API
         const res = await fetch(
-          `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=&fb_exchange_token=${account.access_token}`,
+          `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID}&client_secret=${META_APP_SECRET}&fb_exchange_token=${account.access_token}`,
           { method: "GET" }
         );
 
