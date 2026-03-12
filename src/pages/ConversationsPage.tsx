@@ -126,6 +126,27 @@ export default function ConversationsPage() {
       if (!isMobile && convs.length > 0 && !selectedConversation) setSelectedConversation(convs[0]);
     };
     loadConversations();
+
+    // Realtime: atualizar lista quando nova mensagem chegar
+    const realtimeChannel = supabase
+      .channel(`conversations-list-${currentProject?.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `project_id=eq.${currentProject?.id}`,
+        },
+        () => {
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(realtimeChannel);
+    };
   }, [currentProject?.id]);
 
   // Load SDRs for transfer
