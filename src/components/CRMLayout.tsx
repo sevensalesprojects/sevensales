@@ -19,6 +19,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useFollowupNotifications } from "@/hooks/useFollowupNotifications";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { NavLink } from "@/components/NavLink";
 import { useProject } from "@/contexts/ProjectContext";
