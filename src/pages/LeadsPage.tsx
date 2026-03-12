@@ -418,6 +418,10 @@ export default function LeadsPage() {
                         lead={lead}
                         onDragStart={() => setDraggedLead(lead.id)}
                         onClick={() => setSelectedLead(lead)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setContextMenu({ lead, x: e.clientX, y: e.clientY });
+                        }}
                         currencyCode={currencyCode}
                       />
                     ))}
