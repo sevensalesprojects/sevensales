@@ -28,6 +28,7 @@ interface Call {
   duration_minutes: number | null;
   sdr_id: string | null;
   closer_id: string | null;
+  meeting_url?: string | null;
   lead_name?: string;
   lead_phone?: string;
 }
@@ -50,6 +51,7 @@ export default function AgendaPage() {
   const [formDate, setFormDate] = useState("");
   const [formCloserId, setFormCloserId] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formMeetingUrl, setFormMeetingUrl] = useState("");
   const [closers, setClosers] = useState<{ user_id: string; full_name: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -133,21 +135,39 @@ export default function AgendaPage() {
   const handleCreate = async () => {
     if (!formLeadId || !formDate || !user) return;
     setSaving(true);
-    const { error } = await supabase.from("calls").insert({
+    const { data: insertedCall, error } = await supabase.from("calls").insert({
       lead_id: formLeadId,
       scheduled_at: new Date(formDate).toISOString(),
       closer_id: formCloserId || null,
       sdr_id: user.id,
       notes: formNotes || null,
+      meeting_url: formMeetingUrl || null,
+      project_id: currentProject?.id || null,
       status: "scheduled",
-    });
+    } as any).select("id").single();
     if (!error) {
       toast({ title: "Call agendada", description: "Agendamento criado com sucesso." });
       // Update lead scheduling_date
       await updateLeadField(formLeadId, "scheduling_date", new Date(formDate).toISOString());
+
+      // Create notification for the Closer
+      if (formCloserId && currentProject) {
+        const leadName = leads.find(l => l.id === formLeadId)?.name || "Lead";
+        const formattedDate = new Date(formDate).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+        await supabase.from("notifications").insert({
+          user_id: formCloserId,
+          project_id: currentProject.id,
+          type: "call_scheduled",
+          title: "Nova call agendada",
+          description: `Call com ${leadName} — ${formattedDate}`,
+          entity_type: "call",
+          entity_id: insertedCall?.id || null,
+        });
+      }
+
       await fetchCalls();
       setShowCreate(false);
-      setFormLeadId(""); setFormDate(""); setFormCloserId(""); setFormNotes("");
+      setFormLeadId(""); setFormDate(""); setFormCloserId(""); setFormNotes(""); setFormMeetingUrl("");
     } else {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
@@ -299,6 +319,10 @@ export default function AgendaPage() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Link da Reunião (Zoom/Meet)</Label>
+              <Input value={formMeetingUrl} onChange={(e) => setFormMeetingUrl(e.target.value)} placeholder="https://meet.google.com/..." />
+            </div>
+            <div className="space-y-2">
               <Label>Observações</Label>
               <Input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Notas sobre o agendamento" />
             </div>
@@ -371,6 +395,12 @@ function CallCard({ call, onStatusChange, onLeadClick, compact }: {
               {call.lead_phone && <span className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="w-3 h-3" /> {call.lead_phone}</span>}
             </div>
             {call.notes && <p className="text-xs text-muted-foreground mt-1">{call.notes}</p>}
+            {call.meeting_url && call.status === "scheduled" && (
+              <a href={call.meeting_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                <Video className="w-3 h-3" /> Entrar na Call
+              </a>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1.5">

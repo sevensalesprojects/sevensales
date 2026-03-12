@@ -56,6 +56,8 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<DBUser | null>(null);
   const [showRolesDialog, setShowRolesDialog] = useState<DBUser | null>(null);
+  const [showNewUser, setShowNewUser] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({ full_name: "", email: "", phone: "", role: "sdr" as AppRole });
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -174,7 +176,7 @@ export default function UsersPage() {
           <h1 className="text-base md:text-lg font-semibold text-foreground">Usuários</h1>
           <p className="text-xs md:text-sm text-muted-foreground">Gestão de acesso · {users.length} usuários</p>
         </div>
-        <button onClick={() => toast({ title: "Em breve", description: "Convite de novos usuários será disponibilizado em breve." })}
+        <button onClick={() => setShowNewUser(true)}
           className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity">
           <Plus className="w-3.5 h-3.5" /><span className="hidden md:inline">Novo Usuário</span>
         </button>
@@ -390,6 +392,55 @@ export default function UsersPage() {
         confirmLabel="Excluir"
         destructive
       />
+
+      {/* New User Dialog */}
+      <Dialog open={showNewUser} onOpenChange={setShowNewUser}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Convidar Novo Usuário</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2"><Label>Nome completo *</Label><Input value={newUserForm.full_name} onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })} placeholder="Nome do usuário" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUserForm.email} onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })} placeholder="email@empresa.com" /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input value={newUserForm.phone} onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })} placeholder="(11) 99999-0000" /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Cargo *</Label>
+              <select value={newUserForm.role} onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as AppRole })}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                {allRoles.map(r => <option key={r} value={r}>{roleLabels[r]}</option>)}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewUser(false)}>Cancelar</Button>
+            <Button onClick={async () => {
+              if (!newUserForm.full_name.trim() || !newUserForm.email.trim()) return;
+              setSaving(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("invite-user", {
+                  body: {
+                    email: newUserForm.email.trim(),
+                    full_name: newUserForm.full_name.trim(),
+                    phone: newUserForm.phone.trim() || null,
+                    role: newUserForm.role,
+                  },
+                });
+                if (error) throw error;
+                if (data?.error) throw new Error(data.error);
+                toast({ title: "Convite enviado", description: `Um convite foi enviado para ${newUserForm.email}.` });
+                setNewUserForm({ full_name: "", email: "", phone: "", role: "sdr" });
+                setShowNewUser(false);
+                await fetchUsers();
+              } catch (err: any) {
+                toast({ title: "Erro ao convidar", description: err.message || "Tente novamente.", variant: "destructive" });
+              }
+              setSaving(false);
+            }} disabled={saving || !newUserForm.full_name.trim() || !newUserForm.email.trim()}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Enviar Convite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

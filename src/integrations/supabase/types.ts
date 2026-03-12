@@ -98,7 +98,9 @@ export type Database = {
           duration_minutes: number | null
           id: string
           lead_id: string
+          meeting_url: string | null
           notes: string | null
+          project_id: string | null
           scheduled_at: string
           sdr_id: string | null
           status: string
@@ -109,7 +111,9 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           lead_id: string
+          meeting_url?: string | null
           notes?: string | null
+          project_id?: string | null
           scheduled_at: string
           sdr_id?: string | null
           status?: string
@@ -120,7 +124,9 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           lead_id?: string
+          meeting_url?: string | null
           notes?: string | null
+          project_id?: string | null
           scheduled_at?: string
           sdr_id?: string | null
           status?: string
@@ -131,6 +137,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
