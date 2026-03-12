@@ -401,6 +401,7 @@ function CallCard({ call, onStatusChange, onLeadClick, compact }: {
                 <Video className="w-3 h-3" /> Entrar na Call
               </a>
             )}
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
