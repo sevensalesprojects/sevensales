@@ -4,10 +4,17 @@ import { useLeads, DBLead } from "@/hooks/useLeads";
 import { useProject } from "@/contexts/ProjectContext";
 import { LeadDetailPanel } from "@/components/LeadDetailPanel";
 import { CreateLeadDialog } from "@/components/CreateLeadDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { Plus, Filter, SlidersHorizontal, Loader2, Phone, MessageCircle } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 
 const tagColors: Record<string, string> = {
@@ -20,7 +27,7 @@ const tagColors: Record<string, string> = {
 
 export default function FunnelsPage() {
   const { currentProject } = useProject();
-  const { funnels, loading: funnelsLoading } = useFunnels();
+  const { funnels, loading: funnelsLoading, refetch: refetchFunnels } = useFunnels();
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
   const { leads, loading: leadsLoading, updateLeadStage, updateLeadField, createLead } = useLeads(activeFunnel?.id);
@@ -29,6 +36,12 @@ export default function FunnelsPage() {
   const [showCreateLead, setShowCreateLead] = useState(false);
   const [filterStage, setFilterStage] = useState<string | null>(null);
 
+  // Create funnel dialog
+  const [showCreateFunnel, setShowCreateFunnel] = useState(false);
+  const [newFunnelName, setNewFunnelName] = useState("");
+  const [newFunnelType, setNewFunnelType] = useState<"sdr" | "closer">("sdr");
+  const [creatingFunnel, setCreatingFunnel] = useState(false);
+
   const loading = funnelsLoading || leadsLoading;
 
   const handleDrop = async (stageId: string) => {
@@ -36,6 +49,40 @@ export default function FunnelsPage() {
     const success = await updateLeadStage(draggedLead, stageId);
     if (success) toast({ title: "Lead movido", description: "Etapa atualizada com sucesso." });
     setDraggedLead(null);
+  };
+
+  const handleCreateFunnel = async () => {
+    if (!newFunnelName.trim() || !currentProject) return;
+    setCreatingFunnel(true);
+    const { data, error } = await supabase.from("funnels").insert({
+      name: newFunnelName.trim(),
+      type: newFunnelType,
+      project_id: currentProject.id,
+    }).select().single();
+
+    if (!error && data) {
+      const defaultStages = newFunnelType === "sdr"
+        ? ["Lead Novo", "Contato", "Qualificação", "Agendamento"]
+        : ["Call", "Proposta", "Negociação", "Fechado", "Perdido"];
+      const colors = ["#6366f1", "#f59e0b", "#10b981", "#3b82f6", "#ef4444"];
+      for (let i = 0; i < defaultStages.length; i++) {
+        await supabase.from("funnel_stages").insert({
+          funnel_id: data.id,
+          name: defaultStages[i],
+          position: i,
+          color: colors[i % colors.length],
+        });
+      }
+      toast({ title: "Funil criado", description: `${newFunnelName} foi criado com ${defaultStages.length} etapas.` });
+      setShowCreateFunnel(false);
+      setNewFunnelName("");
+      setNewFunnelType("sdr");
+      setSelectedFunnelId(data.id);
+      await refetchFunnels();
+    } else {
+      toast({ title: "Erro", description: error?.message || "Não foi possível criar o funil.", variant: "destructive" });
+    }
+    setCreatingFunnel(false);
   };
 
   if (loading) {
@@ -51,12 +98,22 @@ export default function FunnelsPage() {
       <div className="flex flex-col items-center justify-center h-full text-center p-6">
         <p className="text-muted-foreground mb-2">Nenhum funil encontrado para este projeto.</p>
         <button
-          onClick={() => toast({ title: "Em breve", description: "Criação de funil será disponibilizada nas Configurações." })}
+          onClick={() => setShowCreateFunnel(true)}
           className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5 hover:opacity-90 transition-opacity"
         >
           <Plus className="w-3.5 h-3.5" />
           Criar Funil
         </button>
+        <CreateFunnelDialog
+          open={showCreateFunnel}
+          onOpenChange={setShowCreateFunnel}
+          name={newFunnelName}
+          onNameChange={setNewFunnelName}
+          type={newFunnelType}
+          onTypeChange={setNewFunnelType}
+          saving={creatingFunnel}
+          onCreate={handleCreateFunnel}
+        />
       </div>
     );
   }
@@ -148,7 +205,66 @@ export default function FunnelsPage() {
         stages={stages}
         funnelId={activeFunnel.id}
       />
+      <CreateFunnelDialog
+        open={showCreateFunnel}
+        onOpenChange={setShowCreateFunnel}
+        name={newFunnelName}
+        onNameChange={setNewFunnelName}
+        type={newFunnelType}
+        onTypeChange={setNewFunnelType}
+        saving={creatingFunnel}
+        onCreate={handleCreateFunnel}
+      />
     </div>
+  );
+}
+
+function CreateFunnelDialog({
+  open, onOpenChange, name, onNameChange, type, onTypeChange, saving, onCreate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  name: string;
+  onNameChange: (name: string) => void;
+  type: "sdr" | "closer";
+  onTypeChange: (type: "sdr" | "closer") => void;
+  saving: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>Criar Novo Funil</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome do Funil *</Label>
+            <Input value={name} onChange={(e) => onNameChange(e.target.value)} placeholder="Ex: Funil SDR Principal" />
+          </div>
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={type} onValueChange={(v) => onTypeChange(v as "sdr" | "closer")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sdr">SDR (Prospecção)</SelectItem>
+                <SelectItem value="closer">Closer (Fechamento)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {type === "sdr"
+                ? "Etapas padrão: Lead Novo → Contato → Qualificação → Agendamento"
+                : "Etapas padrão: Call → Proposta → Negociação → Fechado → Perdido"
+              }
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={onCreate} disabled={saving || !name.trim()}>
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar Funil
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

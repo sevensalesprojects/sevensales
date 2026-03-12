@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useFunnels } from "@/hooks/useFunnels";
 import { useLeads, DBLead } from "@/hooks/useLeads";
 import { useProject } from "@/contexts/ProjectContext";
@@ -10,12 +10,14 @@ import { TransferLeadDialog } from "@/components/TransferLeadDialog";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ImportLeadsDialog } from "@/components/ImportLeadsDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemEvent, saveDeletedRecord } from "@/hooks/useSystemLog";
 import { formatCurrency } from "@/lib/currency";
 import {
   Plus, Search, Download, Upload, Trash2, UserCog, ArrowRightLeft,
   Loader2, Phone, MessageCircle, Pencil, Tag, CheckSquare, Square, MinusSquare,
+  LayoutGrid, List, SlidersHorizontal,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -38,7 +40,14 @@ export default function LeadsPage() {
   const { user } = useAuth();
   const { funnels, loading: funnelsLoading } = useFunnels();
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
-  const activeFunnel = funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
+
+  // Fix #9: Only resolve activeFunnel after funnels are loaded
+  const activeFunnel = useMemo(() => {
+    if (funnels.length === 0) return undefined;
+    return funnels.find((f) => f.id === selectedFunnelId) || funnels[0];
+  }, [funnels, selectedFunnelId]);
+
+  // Fix #9: Only pass funnelId when we have a confirmed funnel
   const { leads, loading: leadsLoading, refetch, updateLeadStage, updateLeadField, createLead, deleteLead } = useLeads(activeFunnel?.id);
   const [selectedLead, setSelectedLead] = useState<DBLead | null>(null);
   const [draggedLead, setDraggedLead] = useState<string | null>(null);
@@ -52,6 +61,7 @@ export default function LeadsPage() {
   const [transferTarget, setTransferTarget] = useState<DBLead | null>(null);
   const [sdrs, setSdrs] = useState<{ user_id: string; full_name: string }[]>([]);
   const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -250,13 +260,24 @@ export default function LeadsPage() {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
+  // Keyboard shortcuts (#12)
+  useKeyboardShortcuts({
+    n: () => setShowCreateLead(true),
+    f: () => {
+      const input = document.querySelector<HTMLInputElement>('input[placeholder*="Buscar"]');
+      input?.focus();
+    },
+  });
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-4 md:px-6 py-3 md:py-4 border-b border-border flex items-center justify-between shrink-0 gap-2">
         <div className="min-w-0">
           <h1 className="text-base md:text-lg font-semibold text-foreground">Leads</h1>
-          <p className="text-xs md:text-sm text-muted-foreground truncate">{currentProject?.name} · {filteredLeads.length} leads</p>
+          <p className="text-xs md:text-sm text-muted-foreground truncate">
+            {activeFunnel ? `${activeFunnel.name} · ` : ""}{filteredLeads.length} leads
+          </p>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           {funnels.length > 1 && !isMobile && (
@@ -267,6 +288,14 @@ export default function LeadsPage() {
           )}
           {!isMobile && (
             <>
+              <div className="flex items-center gap-0.5 border border-border rounded-md overflow-hidden">
+                <button onClick={() => setViewMode("list")} className={`h-8 px-2.5 flex items-center gap-1 text-xs font-medium transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                  <List className="w-3.5 h-3.5" /> Lista
+                </button>
+                <button onClick={() => setViewMode("kanban")} className={`h-8 px-2.5 flex items-center gap-1 text-xs font-medium transition-colors ${viewMode === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                  <LayoutGrid className="w-3.5 h-3.5" /> Kanban
+                </button>
+              </div>
               <button onClick={() => setShowImport(true)} className="h-8 px-3 rounded-md border border-input text-sm text-muted-foreground hover:bg-muted flex items-center gap-1.5 transition-colors">
                 <Upload className="w-3.5 h-3.5" /> Importar
               </button>
@@ -353,7 +382,7 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Content — List */}
+      {/* Content */}
       <div className="flex-1 overflow-auto p-3 md:p-4">
         {isMobile ? (
           <div className="space-y-2">
@@ -361,7 +390,43 @@ export default function LeadsPage() {
               <LeadCardDB key={lead.id} lead={lead} onDragStart={() => {}} onClick={() => setSelectedLead(lead)} currencyCode={currencyCode} />
             ))}
           </div>
+        ) : viewMode === "kanban" && stages.length > 0 ? (
+          /* Kanban View (#8) */
+          <div className="flex gap-3 h-full min-w-max">
+            {stages.map((stage) => {
+              const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
+              return (
+                <div
+                  key={stage.id}
+                  className="w-64 md:w-72 flex flex-col rounded-lg bg-muted/40 border border-border/50"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => handleDrop(stage.id)}
+                >
+                  <div className="px-3 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
+                      <span className="text-sm font-medium text-foreground">{stage.name}</span>
+                      <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">{stageLeads.length}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto scrollbar-thin">
+                    {stageLeads.map((lead) => (
+                      <LeadCardDB
+                        key={lead.id}
+                        lead={lead}
+                        onDragStart={() => setDraggedLead(lead.id)}
+                        onClick={() => setSelectedLead(lead)}
+                        currencyCode={currencyCode}
+                      />
+                    ))}
+                    {stageLeads.length === 0 && <p className="text-[10px] text-muted-foreground text-center py-4">Nenhum lead</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          /* List View */
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">
